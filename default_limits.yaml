@@ -1,0 +1,45 @@
+basic: &base
+  sum:
+    add:
+      min: 1
+      max: 10
+    result:
+      min: 1
+      max: 10
+  mult:
+    factor:
+      min: 1
+      max: 10
+    result:
+      min: 1
+      max: 10
+  div:
+    dividend:
+      min: 1
+      max: 10
+    divisor:
+      min: 1
+      max: 10
+    result:
+      min: 1
+      max: 10
+
+adv_positive: &adv_pos
+  <<: *base
+  sum:
+    add:
+      max: 100
+    result:
+      max: 200
+  mult:
+    factor:
+      max: 50
+    result:
+      max: 200
+  div:
+    dividend:
+      max: 50
+    divisor:
+      max: 50
+    result:
+      max: 200
