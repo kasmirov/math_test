@@ -674,7 +674,11 @@ async function loadNextQuestion() {
 
         // Показываем подсказку если есть
         if (currentQuestion.block_hint) {
+            questionHint.style.display = 'block';
 			questionHint.innerHTML = currentQuestion.block_hint;
+		}
+		else {
+		    questionHint.style.display = 'none';
 		}
 
 		answerInput.value = '';
