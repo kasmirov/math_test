@@ -1,4 +1,3 @@
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
@@ -51,3 +50,4 @@ venv.bak/
 # default app db
 app.db
 
+.idea/
