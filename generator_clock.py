@@ -4,13 +4,95 @@ from datetime import datetime, timedelta
 from generator_abstract import ProblemGenerator
 
 
+def generate_clock_svg(hour, minute, clock_style="detailed"):
+    """Генерирует SVG код для аналоговых часов"""
+    # Рассчитываем углы стрелок
+    hour_12 = hour % 12
+    hour_angle = (hour_12 + minute / 60) * 30
+    minute_angle = minute * 6
+
+    # Определяем параметры в зависимости от стиля
+    show_all_numbers = clock_style == "detailed"
+    show_hour_ticks = clock_style != "minimal"
+    show_hour_quaters_ticks = clock_style == "minimal"
+    show_minute_ticks = clock_style == "detailed"
+
+    # Создаем SVG
+    svg_width = 300
+    svg_height = 300
+    center_x = svg_width // 2
+    center_y = svg_height // 2
+    radius = 140
+
+    svg_code = f'''<svg viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="xMidYMid meet" 
+                     style="width: 80%; height: 80%; max-height: 300px;" 
+                     xmlns="http://www.w3.org/2000/svg">
+        <!-- Фон часов -->
+        <circle cx="{center_x}" cy="{center_y}" r="{radius}" fill="#f0f0f0" stroke="black" stroke-width="2"/>
+        <!-- Центральная точка -->
+        <circle cx="{center_x}" cy="{center_y}" r="4" fill="black"/>
+    '''
+
+    # Добавляем часовые риски
+    if show_hour_ticks or show_hour_quaters_ticks:
+        step = 1 if show_hour_ticks else 3
+        for hour_num in range(1, 13, step):
+            angle = (hour_num - 1) * 30 - 90
+            rad = math.radians(angle)
+
+            # Координаты начала и конца риски
+            x1 = center_x + (radius - 15) * math.cos(rad)
+            y1 = center_y + (radius - 15) * math.sin(rad)
+            x2 = center_x + radius * math.cos(rad)
+            y2 = center_y + radius * math.sin(rad)
+
+            svg_code += f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="3"/>\n'
+
+            # Добавляем цифры
+            if show_all_numbers or hour_num in [3, 6, 9, 12]:
+                text_x = center_x + (radius - 35) * math.cos(rad + math.radians(360/12))
+                text_y = center_y + (radius - 35) * math.sin(rad + math.radians(360/12)) + 7
+                hour_text = str(hour_num)
+                svg_code += f'<text x="{text_x}" y="{text_y}" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold">{hour_text}</text>\n'
+
+    # Добавляем минутные риски
+    if show_minute_ticks:
+        step = 1 if clock_style == "detailed" else 5
+        for minute_num in range(0, 60, step):
+            if minute_num % 5 != 0:  # Пропускаем часовые риски
+                angle = minute_num * 6 - 90
+                rad = math.radians(angle)
+                x1 = center_x + (radius - 8) * math.cos(rad)
+                y1 = center_y + (radius - 8) * math.sin(rad)
+                x2 = center_x + radius * math.cos(rad)
+                y2 = center_y + radius * math.sin(rad)
+                svg_code += f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="1"/>\n'
+
+    # Добавляем часовую стрелку
+    hour_rad = math.radians(hour_angle - 90)
+    hour_hand_length = radius * 0.5
+    hour_x = center_x + hour_hand_length * math.cos(hour_rad)
+    hour_y = center_y + hour_hand_length * math.sin(hour_rad)
+    svg_code += f'<line x1="{center_x}" y1="{center_y}" x2="{hour_x}" y2="{hour_y}" stroke="black" stroke-width="6" stroke-linecap="round"/>\n'
+
+    # Добавляем минутную стрелку
+    minute_rad = math.radians(minute_angle - 90)
+    minute_hand_length = radius * 0.7
+    minute_x = center_x + minute_hand_length * math.cos(minute_rad)
+    minute_y = center_y + minute_hand_length * math.sin(minute_rad)
+    svg_code += f'<line x1="{center_x}" y1="{center_y}" x2="{minute_x}" y2="{minute_y}" stroke="black" stroke-width="3" stroke-linecap="round"/>\n'
+
+    svg_code += '</svg>'
+    return svg_code
+
+
 class ClockGenerator(ProblemGenerator):
     """Генератор задач на определение времени по аналоговым часам и текстовым описаниям"""
 
-    def __init__(self, clock_style="detailed", include_text_descriptions=True):
-        super().__init__(default_timeout=45)
+    def __init__(self, clock_style="detailed", text_only_mode=False):
+        super().__init__(default_timeout=60)
         self.clock_style = clock_style  # "detailed", "simplified", "minimal"
-        self.include_text_descriptions = include_text_descriptions
+        self.text_only_mode = text_only_mode
         self.tags["grade"] = ["2 класс", "3 класс"]
         self.tags["subject"] = ["Математика", "Окружающий мир"]
         self.tags["topic"] = ["Время", "Часы"]
@@ -47,7 +129,8 @@ class ClockGenerator(ProblemGenerator):
             15: "пятнадцати минут", 16: "шестнадцати минут", 17: "семнадцати минут",
             18: "восемнадцати минут", 19: "девятнадцати минут", 20: "двадцати минут",
             21: "двадцати одной минуты", 22: "двадцати двух минут", 23: "двадцати трех минут",
-            24: "двадцати четырех минут", 25: "двадцати пяти минут"
+            24: "двадцати четырех минут", 25: "двадцати пяти минут", 26: "двадцати шести минут",
+            27: "двадцати семи минут", 28: "двадцати восьми минут", 29: "двадцати девяти минут"
         }
 
         # Минуты в именительном падеже
@@ -159,93 +242,17 @@ class ClockGenerator(ProblemGenerator):
         templates = list(set(templates))
         return random.choice(templates) if templates else f"{hour_12}:{minute:02d}"
 
-    def _generate_clock_svg(self, hour, minute):
-        """Генерирует SVG код для аналоговых часов"""
-        # Рассчитываем углы стрелок
-        hour_12 = hour % 12
-        hour_angle = (hour_12 + minute / 60) * 30
-        minute_angle = minute * 6
-
-        # Определяем параметры в зависимости от стиля
-        show_all_numbers = self.clock_style == "detailed"
-        show_hour_ticks = self.clock_style != "minimal"
-        show_minute_ticks = self.clock_style == "detailed"
-
-        # Создаем SVG
-        svg_width = 300
-        svg_height = 300
-        center_x = svg_width // 2
-        center_y = svg_height // 2
-        radius = 140
-
-        svg_code = f'''<svg viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="xMidYMid meet" 
-                         style="width: 80%; height: 80%; max-height: 300px;" 
-                         xmlns="http://www.w3.org/2000/svg">
-            <!-- Фон часов -->
-            <circle cx="{center_x}" cy="{center_y}" r="{radius}" fill="#f0f0f0" stroke="black" stroke-width="2"/>
-            <!-- Центральная точка -->
-            <circle cx="{center_x}" cy="{center_y}" r="4" fill="black"/>
-        '''
-
-        # Добавляем часовые риски
-        if show_hour_ticks:
-            for hour_num in range(1, 13):
-                angle = hour_num * 30 - 90
-                rad = math.radians(angle)
-
-                # Координаты начала и конца риски
-                x1 = center_x + (radius - 15) * math.cos(rad)
-                y1 = center_y + (radius - 15) * math.sin(rad)
-                x2 = center_x + radius * math.cos(rad)
-                y2 = center_y + radius * math.sin(rad)
-
-                svg_code += f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="3"/>\n'
-
-                # Добавляем цифры
-                if show_all_numbers or hour_num in [3, 6, 9, 12]:
-                    text_x = center_x + (radius - 35) * math.cos(rad)
-                    text_y = center_y + (radius - 35) * math.sin(rad) + 7
-                    hour_text = str(hour_num)
-                    svg_code += f'<text x="{text_x}" y="{text_y}" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold">{hour_text}</text>\n'
-
-        # Добавляем минутные риски
-        if show_minute_ticks:
-            for minute_num in range(0, 60, 5):
-                if minute_num % 5 != 0:  # Пропускаем часовые риски
-                    angle = minute_num * 6 - 90
-                    rad = math.radians(angle)
-                    x1 = center_x + (radius - 8) * math.cos(rad)
-                    y1 = center_y + (radius - 8) * math.sin(rad)
-                    x2 = center_x + radius * math.cos(rad)
-                    y2 = center_y + radius * math.sin(rad)
-                    svg_code += f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="1"/>\n'
-
-        # Добавляем часовую стрелку
-        hour_rad = math.radians(hour_angle - 90)
-        hour_hand_length = radius * 0.5
-        hour_x = center_x + hour_hand_length * math.cos(hour_rad)
-        hour_y = center_y + hour_hand_length * math.sin(hour_rad)
-        svg_code += f'<line x1="{center_x}" y1="{center_y}" x2="{hour_x}" y2="{hour_y}" stroke="black" stroke-width="6" stroke-linecap="round"/>\n'
-
-        # Добавляем минутную стрелку
-        minute_rad = math.radians(minute_angle - 90)
-        minute_hand_length = radius * 0.7
-        minute_x = center_x + minute_hand_length * math.cos(minute_rad)
-        minute_y = center_y + minute_hand_length * math.sin(minute_rad)
-        svg_code += f'<line x1="{center_x}" y1="{center_y}" x2="{minute_x}" y2="{minute_y}" stroke="black" stroke-width="3" stroke-linecap="round"/>\n'
-
-        svg_code += '</svg>'
-        return svg_code
-
     def generate_problem(self):
         """Генерирует задачу с часами или текстовым описанием"""
         # Генерируем случайное время
         hour = random.randint(0, 23)
-        minute_choices = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
-        minute = random.choice(minute_choices)
+        #minute_choices = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+        #minute = random.choice(minute_choices)
+        minute = random.randint(0, 59)
 
         # Определяем тип задачи
-        use_text_description = self.include_text_descriptions and random.choice([True, False])
+        use_text_description = True if self.text_only_mode else random.choice([True, False])
+        use_text_description = False
 
         if use_text_description:
             # Генерируем текстовое описание
@@ -287,7 +294,7 @@ class ClockGenerator(ProblemGenerator):
                 <h4 style="margin-bottom: 5px;">Какое время показывают часы?</h4>
                 <div style="display: inline-block; padding: 5px; max-width: 100%;">
                     <div style="width: 80%; height: auto; max-width: 300px; margin: 0 auto;">
-                        {self._generate_clock_svg(hour, minute)}
+                        {generate_clock_svg(hour, minute, clock_style="simplified")}
                     </div>
                 </div>
             </div>
