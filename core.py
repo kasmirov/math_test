@@ -13,7 +13,7 @@ from generator_priority_3rd_grade import PriorityOperationsGenerator3rd
 from generator_yaml import YamlProblemGenerator
 from generator_geom_fig_props import GeometryFigurePropertiesGenerator
 from generator_fraction import FractionGenerator
-from generator_clock import ClockGenerator
+from generator_clock import ClockGeneratorSimple, ClockGeneratorHard
 
 from db_func import add_question_to_session, get_mistakes, get_history, get_questions_number, update_history, \
     get_question, update_current_question_start_time, get_current_question_start_time, increase_current_question_idx, \
@@ -43,7 +43,8 @@ def explore_static_generators(limits, latex=False, has_text_mode=None):
             YamlProblemGenerator("3rd_grade.yaml"),
             GeometryFigurePropertiesGenerator(limits),
             FractionGenerator(base_limits()),
-            ClockGenerator()
+            ClockGeneratorSimple(),
+            ClockGeneratorHard()
         ] if has_text_mode is None or gen.has_text_mode() == has_text_mode
     }
 

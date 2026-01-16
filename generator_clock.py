@@ -1,6 +1,8 @@
 import random
 import math
 from datetime import datetime, timedelta
+from enum import Enum
+
 from generator_abstract import ProblemGenerator
 
 
@@ -85,15 +87,23 @@ def generate_clock_svg(hour, minute, clock_style="detailed"):
     svg_code += '</svg>'
     return svg_code
 
+def uppercase_first_letter(s):
+    s = s.replace('  ', ' ')
+    return s[0].upper() + s[1:]
+
+class ClockGeneratorType(Enum):
+    CLOCK_AND_TEXT = 0
+    CLOCK_ONLY = 1
+    TEXT_ONLY = 2
 
 class ClockGenerator(ProblemGenerator):
     """Генератор задач на определение времени по аналоговым часам и текстовым описаниям"""
 
-    def __init__(self, clock_style="detailed", text_only_mode=False):
+    def __init__(self, mode=ClockGeneratorType.CLOCK_AND_TEXT):
         super().__init__(default_timeout=60)
-        self.clock_style = clock_style  # "detailed", "simplified", "minimal"
-        self.text_only_mode = text_only_mode
-        self.tags["grade"] = ["2 класс", "3 класс"]
+        self.clock_style = "detailed"  # "detailed", "simplified", "minimal"
+        self.mode = mode
+        self.tags["grade"] = ["2 класс"]
         self.tags["subject"] = ["Математика", "Окружающий мир"]
         self.tags["topic"] = ["Время", "Часы"]
 
@@ -117,7 +127,11 @@ class ClockGenerator(ProblemGenerator):
             1: "час", 2: "два часа", 3: "три часа", 4: "четыре часа",
             5: "пять часов", 6: "шесть часов", 7: "семь часов",
             8: "восемь часов", 9: "девять часов", 10: "десять часов",
-            11: "одиннадцать часов", 12: "двенадцать часов", 0: "двенадцать часов"
+            11: "одиннадцать часов", 12: "двенадцать часов", 0: "двенадцать часов",
+            13: "тринадцать часов", 14: "четырнадцать часов", 15: "пятнадцать часов",
+            16: "шестнадцать часов", 17: "семнадцать часов", 18: "восемнадцать часов",
+            19: "девятнадцать часов", 20: "двадцать часов", 21: "двадцать один час",
+            22: "двадцать два часа", 23: "двадцать три часа"
         }
 
         # Минуты в родительном падеже
@@ -142,19 +156,24 @@ class ClockGenerator(ProblemGenerator):
             10: "десять минут", 11: "одиннадцать минут", 12: "двенадцать минут",
             13: "тринадцать минут", 14: "четырнадцать минут", 15: "пятнадцать минут",
             16: "шестнадцать минут", 17: "семнадцать минут", 18: "восемнадцать минут",
-            19: "девятнадцать минут", 20: "двадцать минут", 21: "двадцать одна минута",
-            22: "двадцать две минуты", 23: "двадцать три минуты",
-            24: "двадцать четыре минуты", 25: "двадцать пять минут",
-            26: "двадцать шесть минут", 27: "двадцать семь минут",
-            28: "двадцать восемь минут", 29: "двадцать девять минут",
-            30: "половина"
+            19: "девятнадцать минут",
+            20: "двадцать минут",
+            30: "тридцать минут",
+            40: "сорок минут",
+            50: "пятьдесят минут"
         }
+        for i in range(21, 60):
+            if i % 10 == 0:
+                continue
+            a_i = (i // 10) * 10
+            b_i = i % 10
+            self.minute_words_nominative[i] = self.minute_words_nominative[a_i].split(' ')[0] + ' ' + self.minute_words_nominative[b_i]
 
         self.day_periods = {
-            "утро": (4, 11),  # 4:00 - 11:59
+            "утро": (5, 11),  # 4:00 - 11:59
             "день": (12, 17),  # 12:00 - 17:59
             "вечер": (18, 23),  # 18:00 - 23:59
-            "ночь": (0, 3)  # 0:00 - 3:59
+            "ночь": (0, 4)  # 0:00 - 3:59
         }
 
     def _get_day_period(self, hour):
@@ -164,116 +183,113 @@ class ClockGenerator(ProblemGenerator):
                 return period
         return "день"
 
-    def _generate_time_text_description(self, hour, minute):
+    def _generate_time_text_description(self, hour_24, minute, use_daytime=True):
         """Генерирует текстовое описание времени с правильной грамматикой"""
         # Особые случаи
-        if hour == 12 and minute == 0:
-            return "Полдень"
-        if hour == 0 and minute == 0:
-            return "Полночь"
+        if random.random() < 0.15:
+            if hour_24 == 12 and minute == 0:
+                return "Полдень", "12:00"
+            if hour_24 == 0 and minute == 0:
+                return "Полночь", "0:00"
 
-        hour_12 = hour % 12
-        hour_12 = 12 if hour_12 == 0 else hour_12
+        # Уточнение времени суток
+        period = self._get_day_period(hour_24)
+        period_text = {
+            "утро": "утра",
+            "день": "дня",
+            "вечер": "вечера",
+            "ночь": "ночи"
+        }[period]
+
+        hour_12 = hour_24 % 12
+        hour_12 = hour_12 if hour_12 else 12
         next_hour_12 = (hour_12 % 12) + 1
 
+        period_text_24 = '' if hour_24 > 12 else period_text
+        period_text = '' if hour_24 == hour_12 else period_text
+
+        if random.random() < 0.15 and minute:
+            return (f"{self.hour_words_nominative[hour_24]} {self.minute_words_nominative[minute]} {period_text_24}",
+                    f"{hour_24}:{minute:02d}")
+
+        if random.random() < 0.15 and minute:
+            return (f"{self.hour_words_nominative[hour_12]} {self.minute_words_nominative[minute]} {period_text}",
+                    f"{hour_24}:{minute:02d}")
+
         # Получаем правильные формы слов
-        hour_genitive = self.hour_words_genitive[next_hour_12]
-        hour_nominative = self.hour_words[next_hour_12]
+        next_hour_genitive_12 = self.hour_words_genitive[next_hour_12] # первого, второго, третьего
+        next_hour_nominative_12 = self.hour_words[next_hour_12] # час, два, три ... двенадцать
 
         templates = []
 
         # Базовые шаблоны
         if minute == 0:
             templates.extend([
-                f"Ровно {self.hour_words_nominative[hour_12]}",
-                f"{self.hour_words_nominative[hour_12]} ровно"
+                (f"Ровно {self.hour_words_nominative[hour_12]} {period_text}", f"{hour_24}:{minute:02d}"),
+                (f"{self.hour_words_nominative[hour_12]} {period_text}", f"{hour_24}:{minute:02d}"),
+                (f"Ровно {self.hour_words_nominative[hour_24]} {period_text_24}", f"{hour_24}:{minute:02d}"),
+                (f"{self.hour_words_nominative[hour_24]} {period_text_24} ровно", f"{hour_24}:{minute:02d}"),
             ])
         elif minute == 15:
             templates.extend([
-                f"Четверть {hour_genitive}",
-                f"Пятнадцать минут {hour_genitive}"
+                (f"Четверть {next_hour_genitive_12} {period_text}", f"{hour_24}:{minute:02d}"),
+                (f"Пятнадцать минут {next_hour_genitive_12} {period_text}", f"{hour_24}:{minute:02d}"),
             ])
         elif minute == 30:
             templates.extend([
-                f"Половина {hour_genitive}",
-                f"Тридцать минут {hour_genitive}"
+                (f"Половина {next_hour_genitive_12} {period_text}", f"{hour_24}:{minute:02d}"),
             ])
         elif minute == 45:
             templates.extend([
-                f"Без четверти {hour_nominative}",
-                f"Без пятнадцати {hour_nominative}"
+                (f"Без четверти {next_hour_nominative_12} {period_text}", f"{hour_24}:{minute:02d}"),
+                (f"Без пятнадцати {next_hour_nominative_12} {period_text}", f"{hour_24}:{minute:02d}"),
             ])
         elif minute < 30:
             # Конструкция "X минут Y-го" (до половины)
             if minute in self.minute_words_nominative:
                 minute_text = self.minute_words_nominative[minute]
-                templates.append(f"{minute_text} {hour_genitive}")
+                templates.append(
+                    (f"{minute_text} {next_hour_genitive_12} {period_text}", f"{hour_24}:{minute:02d}")
+                )
             else:
-                templates.append(f"{minute} минут {hour_genitive}")
+                templates.append(
+                    (f"{minute} минут {next_hour_genitive_12} {period_text}", f"{hour_24}:{minute:02d}")
+                )
         else:
             # Конструкция "без X минут Y" (после половины)
             minutes_to_hour = 60 - minute
             if minutes_to_hour in self.minute_words_genitive:
-                templates.append(f"Без {self.minute_words_genitive[minutes_to_hour]} {hour_nominative}")
+                templates.append(
+                    (f"Без {self.minute_words_genitive[minutes_to_hour]} {next_hour_nominative_12} {period_text}", f"{hour_24}:{minute:02d}")
+                )
             else:
-                templates.append(f"Без {minutes_to_hour} минут {hour_nominative}")
+                templates.append(
+                    (f"Без {minutes_to_hour} минут {next_hour_nominative_12}  {period_text}", f"{hour_24}:{minute:02d}")
+                )
 
-        # Добавляем уточнение времени суток (в 30% случаев)
-        if random.random() < 0.3 and minute in [0, 15, 30, 45]:
-            period = self._get_day_period(hour)
-            period_text = {
-                "утро": "утра",
-                "день": "дня",
-                "вечер": "вечера",
-                "ночь": "ночи"
-            }[period]
-
-            if not (hour == 12 and minute == 0) and not (hour == 0 and minute == 0):
-                if minute == 0:
-                    templates.append(f"{self.hour_words_nominative[hour_12]} {period_text}")
-                elif minute == 15:
-                    templates.append(f"Четверть {hour_genitive} {period_text}")
-                elif minute == 30:
-                    templates.append(f"Половина {hour_genitive} {period_text}")
-                elif minute == 45:
-                    templates.append(f"Без четверти {hour_nominative} {period_text}")
-
+        # Стиль
+        templates = [(uppercase_first_letter(q), a) for [q, a] in templates]
         # Убираем дубликаты и выбираем случайный
         templates = list(set(templates))
-        return random.choice(templates) if templates else f"{hour_12}:{minute:02d}"
+        return random.choice(templates)
 
     def generate_problem(self):
         """Генерирует задачу с часами или текстовым описанием"""
         # Генерируем случайное время
         hour = random.randint(0, 23)
-        #minute_choices = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
-        #minute = random.choice(minute_choices)
         minute = random.randint(0, 59)
 
         # Определяем тип задачи
-        use_text_description = True if self.text_only_mode else random.choice([True, False])
-        use_text_description = False
+        gen_text_description = random.choice([True, False]) if self.mode == ClockGeneratorType.CLOCK_AND_TEXT else False
+        gen_text_description = True if self.mode == ClockGeneratorType.TEXT_ONLY else gen_text_description
 
-        if use_text_description:
+
+        if gen_text_description:
+            # Использовать время дня
+            use_daytime = random.choice([False, True])
             # Генерируем текстовое описание
-            text_description = self._generate_time_text_description(hour, minute)
-
-            # Определяем правильный ответ (ИСПРАВЛЕНО!)
-            # Для "десять минут первого" должно быть 0:10, а не 12:10
-            if "первого" in text_description and hour == 0:
-                # 0 часов в текстовом описании как "первого" должно соответствовать 0:xx
-                answer = f"{0:02d}:{minute:02d}"
-            elif hour == 0:
-                # Для 0 часов используем 00:xx
-                answer = f"{0:02d}:{minute:02d}"
-            elif hour == 12:
-                # Для 12 часов используем 12:xx
-                answer = f"{12:02d}:{minute:02d}"
-            else:
-                # Для остальных - преобразуем в 12-часовой формат
-                hour_12 = hour % 12
-                hour_12 = 12 if hour_12 == 0 else hour_12
-                answer = f"{hour_12}:{minute:02d}"
+            text, answer = self._generate_time_text_description(hour, minute, use_daytime)
+            text_description = uppercase_first_letter(text)
 
             html_code = f'''
             <div style="text-align: center; margin: 5px;">
@@ -294,7 +310,7 @@ class ClockGenerator(ProblemGenerator):
                 <h4 style="margin-bottom: 5px;">Какое время показывают часы?</h4>
                 <div style="display: inline-block; padding: 5px; max-width: 100%;">
                     <div style="width: 80%; height: auto; max-width: 300px; margin: 0 auto;">
-                        {generate_clock_svg(hour, minute, clock_style="simplified")}
+                        {generate_clock_svg(hour, minute, clock_style=self.clock_style)}
                     </div>
                 </div>
             </div>
@@ -303,10 +319,10 @@ class ClockGenerator(ProblemGenerator):
         return html_code, answer
 
     def get_section_name(self):
-        return "Определение времени по аналоговым часам или описанию"
+        return "Определение времени по аналоговым часам или описанию (детальные часы)"
 
     def get_key(self):
-        return "time_and_clock"
+        return "time_and_clock_simple"
 
     def get_hint(self):
         return ("Введите время в формате hh:mm, например, 1:15 или 13:15<br>"
@@ -330,3 +346,30 @@ class ClockGenerator(ProblemGenerator):
     @staticmethod
     def has_text_mode():
         return True
+
+class ClockGeneratorSimple(ClockGenerator):
+    """Генератор задач на определение времени по аналоговым часам и текстовым описаниям"""
+
+    def __init__(self, mode=ClockGeneratorType.CLOCK_ONLY):
+        super().__init__(mode=mode)
+        self.tags["grade"] = ["2 класс"]
+
+    def get_section_name(self):
+        return "Определение времени по аналоговым часам (стандартный циферблат)"
+
+    def get_key(self):
+        return "time_and_clock_simple"
+
+class ClockGeneratorHard(ClockGenerator):
+    """Генератор задач на определение времени по аналоговым часам и текстовым описаниям"""
+
+    def __init__(self, mode=ClockGeneratorType.CLOCK_AND_TEXT):
+        super().__init__(mode=mode)
+        self.tags["grade"] = ["3 класс"]
+        self.clock_style = "minimal"
+
+    def get_section_name(self):
+        return "Определение времени по аналоговым часам или описанию (минималистичный циферблат)"
+
+    def get_key(self):
+        return "time_and_clock_hard"
