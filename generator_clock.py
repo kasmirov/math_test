@@ -183,7 +183,7 @@ class ClockGenerator(ProblemGenerator):
                 return period
         return "день"
 
-    def _generate_time_text_description(self, hour_24, minute, use_daytime=True):
+    def _generate_time_text_description(self, hour_24, minute):
         """Генерирует текстовое описание времени с правильной грамматикой"""
         # Особые случаи
         if random.random() < 0.15:
@@ -285,10 +285,8 @@ class ClockGenerator(ProblemGenerator):
 
 
         if gen_text_description:
-            # Использовать время дня
-            use_daytime = random.choice([False, True])
             # Генерируем текстовое описание
-            text, answer = self._generate_time_text_description(hour, minute, use_daytime)
+            text, answer = self._generate_time_text_description(hour, minute)
             text_description = uppercase_first_letter(text)
 
             html_code = f'''
