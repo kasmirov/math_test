@@ -1,3 +1,7 @@
+
+// API базовый URL
+const API_BASE_URL = '/api';
+
 class AccountPage {
     constructor() {
         this.currentUser = null;
@@ -68,7 +72,7 @@ class AccountPage {
 
     async loadAccountDataFromServer() {
         try {
-            const response = await fetch('http://localhost:5000/account', {
+            const response = await fetch(`${API_BASE_URL}/account`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -185,7 +189,7 @@ class AccountPage {
         this.setLoadingState(true);
 
         try {
-            const response = await fetch('http://localhost:5000/account', {
+            const response = await fetch(`${API_BASE_URL}/account`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -233,7 +237,7 @@ class AccountPage {
         this.setLoadingState(true);
 
         try {
-            const response = await fetch('http://localhost:5000/profiles', {
+            const response = await fetch(`${API_BASE_URL}/profiles`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -267,7 +271,7 @@ class AccountPage {
         const newName = prompt('Введите новое название профиля:', profile.name);
         if (newName && newName !== profile.name) {
             try {
-                const response = await fetch(`http://localhost:5000/profiles/${profileId}`, {
+                const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -291,7 +295,7 @@ class AccountPage {
 
     async cloneProfile(profileId) {
         try {
-            const response = await fetch(`http://localhost:5000/profiles/${profileId}/clone`, {
+            const response = await fetch(`${API_BASE_URL}/profiles/${profileId}/clone`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -314,7 +318,7 @@ class AccountPage {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/profiles/${profileId}`, {
+            const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -341,7 +345,7 @@ class AccountPage {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/account', {
+            const response = await fetch(`${API_BASE_URL}/account`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -361,7 +365,7 @@ class AccountPage {
 
     async loadProfilesFromServer() {
         try {
-            const response = await fetch('http://localhost:5000/profiles', {
+            const response = await fetch(`${API_BASE_URL}/profiles`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -437,3 +441,48 @@ function showNotAuthenticated() {
 document.addEventListener('DOMContentLoaded', function() {
     accountPage = new AccountPage();
 });
+
+
+const accWidget = new AccountWidget({
+    apiBaseUrl: API_BASE_URL,
+    alignment: 'right',
+    container: '.new-menu-container',
+    accountPageUrl: '/account.html',
+    showSettings: false,
+    showProfiles: false,
+
+    onLogin: (user) => {
+        console.log('Пользователь вошел:', user);
+        currentUser = user;
+    },
+
+    onLogout: () => {
+        console.log('Пользователь вышел');
+        currentUser = null;
+        currentProfile = null;
+        profiles = [];
+    },
+
+    onAccountUpdate: (user) => {
+        console.log('Данные пользователя обновлены:', user);
+        currentUser = user;
+    },
+
+    onProfileClick: (profile) => {
+        console.log('Выбран профиль:', profile);
+    },
+
+    onSettingsClick: () => {
+        console.log('Toggle settings menu');
+    },
+
+    // Коллбек для обновления при загрузке/обновлении страницы
+    onAuthRefresh: (user, profilesList) => {
+        console.log('Состояние аутентификации обновлено:', user);
+        currentUser = user;
+        profiles = profilesList || [];
+    }
+});
+
+// Сохраняем для глобального доступа
+accountWidget = accWidget;

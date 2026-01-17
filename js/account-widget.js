@@ -11,6 +11,9 @@ class AccountWidget {
             onProfileClick: options.onProfileClick || null,
             onAuthRefresh: options.onAuthRefresh || (() => {}),
             onSettingsClick: options.onSettingsClick || (() => {}),
+            showSettings: options.showSettings !== undefined ? options.showSettings : true,
+            showProfiles: options.showProfiles !== undefined ? options.showProfiles : true,
+
             ...options
         };
 
@@ -415,22 +418,40 @@ class AccountWidget {
     }
 
     getAccountMenuHTML() {
-        return `
-            <div class="account-menu">
-                <button class="account-menu-item" data-action="settings">Настройки</button>
-                <button class="account-menu-item" data-action="account">Аккаунт</button>
-                <button class="account-menu-item" data-action="switch-account">Сменить аккаунт</button>
-                <button class="account-menu-item" data-action="logout">Выйти</button>
+        let menuItems = [];
+
+        if (this.options.showSettings) {
+            menuItems.push('<button class="account-menu-item" data-action="settings">Настройки</button>');
+        }
+
+        menuItems.push('<button class="account-menu-item" data-action="account">Аккаунт</button>');
+        menuItems.push('<button class="account-menu-item" data-action="switch-account">Сменить аккаунт</button>');
+        menuItems.push('<button class="account-menu-item" data-action="logout">Выйти</button>');
+
+        let profilesSection = '';
+        if (this.options.showProfiles) {
+            profilesSection = `
                 <div class="account-divider"></div>
                 <div class="profiles-section">
                     <div class="profiles-header">Профили</div>
                     ${this.getProfilesListHTML()}
                 </div>
+            `;
+        }
+
+        return `
+            <div class="account-menu">
+                ${menuItems.join('')}
+                ${profilesSection}
             </div>
         `;
     }
 
     getProfilesListHTML() {
+        if (!this.options.showProfiles) {
+            return '';
+        }
+
         if (!this.profiles.length) {
             return '<div class="profile-item" style="color: #9ca3af; cursor: default;">Нет профилей</div>';
         }
@@ -465,7 +486,7 @@ class AccountWidget {
                 this.handleAccountAction(action);
             }
 
-            if (e.target.classList.contains('profile-item') || e.target.closest('.profile-item')) {
+            if (this.options.showProfiles && (e.target.classList.contains('profile-item') || e.target.closest('.profile-item'))) {
                 const profileItem = e.target.classList.contains('profile-item') ? e.target : e.target.closest('.profile-item');
                 const profileId = profileItem.getAttribute('data-profile-id');
 
@@ -521,8 +542,10 @@ class AccountWidget {
     handleAccountAction(action) {
         switch (action) {
             case 'settings':
-                this.showSettings();
-                this.hideDropdown();
+                if (this.options.showSettings) {
+                    this.showSettings();
+                    this.hideDropdown();
+                }
                 break;
             case 'account':
                 if (this.options.accountPageUrl) {
@@ -542,7 +565,7 @@ class AccountWidget {
     }
 
     showSettings() {
-        if (this.options.onSettingsClick) {
+        if (this.options.showSettings && this.options.onSettingsClick) {
             this.options.onSettingsClick();
         }
     }
@@ -555,6 +578,8 @@ class AccountWidget {
     }
 
     handleProfileClick(profileId, profileName) {
+        if (!this.options.showProfiles) return;
+
         const profile = this.profiles.find(p => p.id === profileId);
         if (!profile) return;
 
@@ -713,7 +738,7 @@ class AccountWidget {
             const result = await this.makeRequest('/account');
             if (result && result.user) {
                 this.currentUser = result.user;
-                this.profiles = result.profiles || [];
+                this.profiles = this.options.showProfiles ? (result.profiles || []) : [];
                 await this.onAuthSuccess();
 
                 this.options.onAuthRefresh(this.currentUser, this.profiles);
@@ -745,13 +770,17 @@ class AccountWidget {
             if (result && result.user) {
                 this.currentUser = result.user;
 
-                try {
-                    const accountData = await this.makeRequest('/account');
-                    if (accountData && accountData.profiles) {
-                        this.profiles = accountData.profiles;
+                if (this.options.showProfiles) {
+                    try {
+                        const accountData = await this.makeRequest('/account');
+                        if (accountData && accountData.profiles) {
+                            this.profiles = accountData.profiles;
+                        }
+                    } catch (e) {
+                        await this.loadProfiles();
                     }
-                } catch (e) {
-                    await this.loadProfiles();
+                } else {
+                    this.profiles = [];
                 }
 
                 await this.onAuthSuccess();
@@ -788,13 +817,17 @@ class AccountWidget {
             if (result && result.user) {
                 this.currentUser = result.user;
 
-                try {
-                    const accountData = await this.makeRequest('/account');
-                    if (accountData && accountData.profiles) {
-                        this.profiles = accountData.profiles;
+                if (this.options.showProfiles) {
+                    try {
+                        const accountData = await this.makeRequest('/account');
+                        if (accountData && accountData.profiles) {
+                            this.profiles = accountData.profiles;
+                        }
+                    } catch (e) {
+                        await this.loadProfiles();
                     }
-                } catch (e) {
-                    await this.loadProfiles();
+                } else {
+                    this.profiles = [];
                 }
 
                 await this.onAuthSuccess();
@@ -824,6 +857,8 @@ class AccountWidget {
     }
 
     async loadProfiles() {
+        if (!this.options.showProfiles) return;
+
         try {
             const result = await this.makeRequest('/profiles');
             if (result && !result.error) {
@@ -837,7 +872,7 @@ class AccountWidget {
 
     async onAuthSuccess() {
         const btn = this.container.querySelector('#accountMainBtn');
-        if (this.currentProfile) {
+        if (this.options.showProfiles && this.currentProfile) {
             btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
         } else {
             btn.textContent = this.currentUser.username;
@@ -856,6 +891,8 @@ class AccountWidget {
     }
 
     updateProfilesDisplay() {
+        if (!this.options.showProfiles) return;
+
         const dropdown = this.container.querySelector('#accountDropdown');
         const profilesSection = dropdown.querySelector('.profiles-section');
         if (profilesSection) {
@@ -919,14 +956,16 @@ class AccountWidget {
     }
 
     getProfiles() {
-        return this.profiles;
+        return this.options.showProfiles ? this.profiles : [];
     }
 
     getCurrentProfile() {
-        return this.currentProfile;
+        return this.options.showProfiles ? this.currentProfile : null;
     }
 
     setCurrentProfile(profileId) {
+        if (!this.options.showProfiles) return;
+
         const profile = this.profiles.find(p => p.id === profileId);
         if (profile) {
             this.currentProfile = profile;

@@ -986,7 +986,6 @@ ALLOWED_ORIGINS = [
     'http://localhost:5000',
     'http://127.0.0.1:5000',
     'http://0.0.0.0:5000',
-    # Добавьте другие IP-адреса, если нужно
 ]
 
 @app.before_request
