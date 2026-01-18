@@ -91,10 +91,10 @@ def generate_test_plan(profile_id,
     for generator in generators:
         problem_key = generator.get_key()
         section_question_idx = 0
-
+        answer_timeout = timeout
         if not timeout:
             gen_timeout = generator.get_timeout()
-            timeout = gen_timeout if gen_timeout else DEFAULT_TIMEOUT
+            answer_timeout = gen_timeout if gen_timeout else DEFAULT_TIMEOUT
 
         # Добавляем задачи из предыдущих ошибок
         mistakes_history = get_mistakes(profile_id, problem_key)
@@ -102,7 +102,7 @@ def generate_test_plan(profile_id,
         while section_question_idx < num_of_questions and section_question_idx < len(mistakes_history):
             question = mistakes_history[section_question_idx]['question']
             correct_answer = mistakes_history[section_question_idx]['correct_answer']
-            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, correct_answer, timeout)
+            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, correct_answer, answer_timeout)
             question_idx += 1
             section_question_idx += 1
 
@@ -132,7 +132,7 @@ def generate_test_plan(profile_id,
                 continue
 
             questions_history.append(question)
-            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, answer, timeout)
+            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, answer, answer_timeout)
             question_idx += 1
             section_question_idx += 1
             start_time = time.time()

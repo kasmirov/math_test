@@ -691,6 +691,7 @@ async function loadNextQuestion() {
 		answerInput.focus();
 
 		// Запускаем таймер
+		// TODO questionData.time_limit ?
 		timeLeft = currentQuestion.time_limit;
 		updateTimerDisplay();
 
