@@ -1,4 +1,3 @@
-
 // API базовый URL
 const API_BASE_URL = '/api';
 
@@ -11,7 +10,59 @@ class AccountPage {
 
     async init() {
         this.setupEventListeners();
+        this.initAccountWidget();
         await this.checkAuthAndLoadData();
+    }
+
+    initAccountWidget() {
+        // Инициализируем виджет с настройками для страницы аккаунта
+        const accountWidget = new AccountWidget({
+            apiBaseUrl: API_BASE_URL,
+            alignment: 'right',
+            container: '.new-menu-container',
+            accountPageUrl: '/account.html',
+            showSettings: false,
+            showProfiles: false,
+
+            onLogin: (user) => {
+                console.log('Пользователь вошел:', user);
+                this.currentUser = user;
+                this.showAuthenticated();
+                this.loadAccountData(user);
+                this.loadProfilesFromServer();
+            },
+
+            onLogout: () => {
+                console.log('Пользователь вышел');
+                this.currentUser = null;
+                this.profiles = [];
+                this.showNotAuthenticated();
+            },
+
+            onAccountUpdate: (user) => {
+                console.log('Данные пользователя обновлены:', user);
+                this.currentUser = user;
+                this.loadAccountData(user);
+            },
+
+            onProfileClick: (profile) => {
+                console.log('Выбран профиль:', profile);
+            },
+
+            onAuthRefresh: (user, profilesList) => {
+                console.log('Состояние аутентификации обновлено:', user);
+                this.currentUser = user;
+                this.profiles = profilesList || [];
+                if (user) {
+                    this.showAuthenticated();
+                    this.loadAccountData(user);
+                    this.loadProfilesData(this.profiles);
+                }
+            }
+        });
+
+        // Сохраняем для глобального доступа
+        window.accountWidget = accountWidget;
     }
 
     setupEventListeners() {
@@ -23,21 +74,30 @@ class AccountPage {
         });
 
         // Форма аккаунта
-        document.getElementById('accountForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.updateAccount();
-        });
+        const accountForm = document.getElementById('accountForm');
+        if (accountForm) {
+            accountForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.updateAccount();
+            });
+        }
 
         // Форма создания профиля
-        document.getElementById('createProfileForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.createProfile();
-        });
+        const createProfileForm = document.getElementById('createProfileForm');
+        if (createProfileForm) {
+            createProfileForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.createProfile();
+            });
+        }
 
         // Удаление аккаунта
-        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
-            this.deleteAccount();
-        });
+        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+        if (deleteAccountBtn) {
+            deleteAccountBtn.addEventListener('click', () => {
+                this.deleteAccount();
+            });
+        }
     }
 
     switchTab(tabName) {
@@ -54,9 +114,9 @@ class AccountPage {
     async checkAuthAndLoadData() {
         try {
             // Используем глобальный виджет для проверки аутентификации
-            if (accountWidget && accountWidget.isAuthenticated()) {
-                this.currentUser = accountWidget.getUser();
-                this.profiles = accountWidget.getProfiles();
+            if (window.accountWidget && window.accountWidget.isAuthenticated()) {
+                this.currentUser = window.accountWidget.getUser();
+                this.profiles = window.accountWidget.getProfiles();
                 this.showAuthenticated();
                 this.loadAccountData(this.currentUser);
                 this.loadProfilesData(this.profiles);
@@ -94,37 +154,46 @@ class AccountPage {
     }
 
     showAuthenticated() {
-        document.getElementById('notAuthenticated').style.display = 'none';
-        document.getElementById('authenticatedContent').style.display = 'block';
+        const notAuthenticated = document.getElementById('notAuthenticated');
+        const authenticatedContent = document.getElementById('authenticatedContent');
+
+        if (notAuthenticated) notAuthenticated.style.display = 'none';
+        if (authenticatedContent) authenticatedContent.style.display = 'block';
     }
 
     showNotAuthenticated() {
-        document.getElementById('notAuthenticated').style.display = 'block';
-        document.getElementById('authenticatedContent').style.display = 'none';
+        const notAuthenticated = document.getElementById('notAuthenticated');
+        const authenticatedContent = document.getElementById('authenticatedContent');
+
+        if (notAuthenticated) notAuthenticated.style.display = 'block';
+        if (authenticatedContent) authenticatedContent.style.display = 'none';
     }
 
     loadAccountData(user) {
         if (!user) return;
 
-        document.getElementById('accountEmail').value = user.email || '';
-        document.getElementById('accountUsername').value = user.username || '';
+        const emailInput = document.getElementById('accountEmail');
+        const usernameInput = document.getElementById('accountUsername');
+        const createdAtSpan = document.getElementById('accountCreatedAt');
+        const profilesCountSpan = document.getElementById('profilesCount');
 
-        if (user.preferences) {
-            document.getElementById('accountPreferences').value =
-                JSON.stringify(user.preferences, null, 2);
+        if (emailInput) emailInput.value = user.email || '';
+        if (usernameInput) usernameInput.value = user.username || '';
+
+        if (createdAtSpan) {
+            createdAtSpan.textContent = user.created_at
+                ? new Date(user.created_at).toLocaleDateString('ru-RU')
+                : '—';
         }
 
-        // Статистика
-        document.getElementById('profilesCount').value = this.profiles.length;
-
-        if (user.created_at) {
-            document.getElementById('accountCreatedAt').value =
-                new Date(user.created_at).toLocaleDateString('ru-RU');
+        if (profilesCountSpan) {
+            profilesCountSpan.textContent = this.profiles.length;
         }
     }
 
     loadProfilesData(profiles) {
         const container = document.getElementById('profilesList');
+        if (!container) return;
 
         if (!profiles || profiles.length === 0) {
             container.innerHTML = `
@@ -144,9 +213,9 @@ class AccountPage {
                         <div class="profile-type">${this.getProfileTypeName(profile.type)}</div>
                     </div>
                     <div class="profile-actions">
-                        <button class="btn btn-secondary" onclick="accountPage.editProfile(${profile.id})">Ред.</button>
-                        <button class="btn btn-secondary" onclick="accountPage.cloneProfile(${profile.id})">Клон</button>
-                        <button class="btn btn-danger" onclick="accountPage.deleteProfile(${profile.id})">Уд.</button>
+                        <button class="btn btn-secondary edit-profile-btn" data-profile-id="${profile.id}">Ред.</button>
+                        <button class="btn btn-secondary clone-profile-btn" data-profile-id="${profile.id}">Клон</button>
+                        <button class="btn btn-danger delete-profile-btn" data-profile-id="${profile.id}">Уд.</button>
                     </div>
                 </div>
                 ${Object.keys(profile.settings || {}).length > 0 ? `
@@ -159,6 +228,35 @@ class AccountPage {
                 </div>
             </div>
         `).join('');
+
+        // Добавляем обработчики для кнопок профилей
+        this.setupProfileEventListeners();
+    }
+
+    setupProfileEventListeners() {
+        // Редактирование профиля
+        document.querySelectorAll('.edit-profile-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
+                this.editProfile(profileId);
+            });
+        });
+
+        // Клонирование профиля
+        document.querySelectorAll('.clone-profile-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
+                this.cloneProfile(profileId);
+            });
+        });
+
+        // Удаление профиля
+        document.querySelectorAll('.delete-profile-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
+                this.deleteProfile(profileId);
+            });
+        });
     }
 
     getProfileTypeName(type) {
@@ -173,20 +271,15 @@ class AccountPage {
 
     async updateAccount() {
         const formData = {
-            username: document.getElementById('accountUsername').value
+            username: document.getElementById('accountUsername').value.trim()
         };
 
-        const preferences = document.getElementById('accountPreferences').value;
-        if (preferences) {
-            try {
-                formData.preferences = JSON.parse(preferences);
-            } catch (e) {
-                this.showAlert('error', 'Неверный формат JSON в настройках', 'accountAlert');
-                return;
-            }
+        if (!formData.username) {
+            this.showAlert('error', 'Имя пользователя не может быть пустым', 'accountAlert');
+            return;
         }
 
-        this.setLoadingState(true);
+        this.setLoadingState(true, 'accountForm');
 
         try {
             const response = await fetch(`${API_BASE_URL}/account`, {
@@ -203,9 +296,12 @@ class AccountPage {
                 this.showAlert('success', 'Настройки аккаунта обновлены!', 'accountAlert');
 
                 // Обновляем данные в виджете
-                if (accountWidget) {
-                    accountWidget.currentUser = result.user;
-                    accountWidget.updateUserInfo();
+                if (window.accountWidget && result.user) {
+                    window.accountWidget.currentUser = result.user;
+                    // Если у виджета есть метод updateUserInfo, используем его
+                    if (window.accountWidget.updateUserInfo) {
+                        window.accountWidget.updateUserInfo();
+                    }
                 }
             } else {
                 const error = await response.json();
@@ -214,27 +310,27 @@ class AccountPage {
         } catch (error) {
             this.showAlert('error', 'Ошибка сети: ' + error.message, 'accountAlert');
         } finally {
-            this.setLoadingState(false);
+            this.setLoadingState(false, 'accountForm');
         }
     }
 
     async createProfile() {
+        const nameInput = document.getElementById('profileName');
+        const typeSelect = document.getElementById('profileType');
+
+        if (!nameInput || !typeSelect) return;
+
         const formData = {
-            name: document.getElementById('profileName').value,
-            type: document.getElementById('profileType').value
+            name: nameInput.value.trim(),
+            type: typeSelect.value
         };
 
-        const settings = document.getElementById('profileSettings').value;
-        if (settings) {
-            try {
-                formData.settings = JSON.parse(settings);
-            } catch (e) {
-                this.showAlert('error', 'Неверный формат JSON в настройках', 'profileAlert');
-                return;
-            }
+        if (!formData.name) {
+            this.showAlert('error', 'Название профиля не может быть пустым', 'profileAlert');
+            return;
         }
 
-        this.setLoadingState(true);
+        this.setLoadingState(true, 'createProfileForm');
 
         try {
             const response = await fetch(`${API_BASE_URL}/profiles`, {
@@ -249,7 +345,7 @@ class AccountPage {
             if (response.ok) {
                 const result = await response.json();
                 this.showAlert('success', 'Профиль создан!', 'profileAlert');
-                document.getElementById('createProfileForm').reset();
+                nameInput.value = '';
 
                 // Обновляем список профилей
                 await this.loadProfilesFromServer();
@@ -260,7 +356,7 @@ class AccountPage {
         } catch (error) {
             this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
         } finally {
-            this.setLoadingState(false);
+            this.setLoadingState(false, 'createProfileForm');
         }
     }
 
@@ -269,7 +365,7 @@ class AccountPage {
         if (!profile) return;
 
         const newName = prompt('Введите новое название профиля:', profile.name);
-        if (newName && newName !== profile.name) {
+        if (newName && newName.trim() && newName !== profile.name) {
             try {
                 const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
                     method: 'PUT',
@@ -277,7 +373,7 @@ class AccountPage {
                         'Content-Type': 'application/json'
                     },
                     credentials: 'include',
-                    body: JSON.stringify({ name: newName })
+                    body: JSON.stringify({ name: newName.trim() })
                 });
 
                 if (response.ok) {
@@ -285,10 +381,10 @@ class AccountPage {
                     await this.loadProfilesFromServer();
                 } else {
                     const error = await response.json();
-                    alert('Ошибка: ' + (error.error || 'Не удалось обновить профиль'));
+                    this.showAlert('error', error.error || 'Не удалось обновить профиль', 'profileAlert');
                 }
             } catch (error) {
-                alert('Ошибка сети: ' + error.message);
+                this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
             }
         }
     }
@@ -305,10 +401,10 @@ class AccountPage {
                 await this.loadProfilesFromServer();
             } else {
                 const error = await response.json();
-                alert('Ошибка: ' + (error.error || 'Не удалось клонировать профиль'));
+                this.showAlert('error', error.error || 'Не удалось клонировать профиль', 'profileAlert');
             }
         } catch (error) {
-            alert('Ошибка сети: ' + error.message);
+            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
         }
     }
 
@@ -328,10 +424,10 @@ class AccountPage {
                 await this.loadProfilesFromServer();
             } else {
                 const error = await response.json();
-                alert('Ошибка: ' + (error.error || 'Не удалось удалить профиль'));
+                this.showAlert('error', error.error || 'Не удалось удалить профиль', 'profileAlert');
             }
         } catch (error) {
-            alert('Ошибка сети: ' + error.message);
+            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
         }
     }
 
@@ -376,12 +472,17 @@ class AccountPage {
                 this.loadProfilesData(profiles);
 
                 // Обновляем счетчик профилей
-                document.getElementById('profilesCount').value = profiles.length;
+                const profilesCountSpan = document.getElementById('profilesCount');
+                if (profilesCountSpan) {
+                    profilesCountSpan.textContent = profiles.length;
+                }
 
                 // Обновляем виджет если он существует
-                if (accountWidget) {
-                    accountWidget.profiles = profiles;
-                    accountWidget.updateProfilesDisplay();
+                if (window.accountWidget) {
+                    window.accountWidget.profiles = profiles;
+                    if (window.accountWidget.updateProfilesDisplay) {
+                        window.accountWidget.updateProfilesDisplay();
+                    }
                 }
             }
         } catch (error) {
@@ -389,15 +490,20 @@ class AccountPage {
         }
     }
 
-    setLoadingState(loading) {
-        const buttons = document.querySelectorAll('#accountForm button, #createProfileForm button');
+    setLoadingState(loading, formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        const buttons = form.querySelectorAll('button[type="submit"]');
         buttons.forEach(btn => {
             if (loading) {
                 btn.classList.add('loading');
                 btn.disabled = true;
+                btn.innerHTML = btn.textContent + '...';
             } else {
                 btn.classList.remove('loading');
                 btn.disabled = false;
+                btn.innerHTML = btn.textContent.replace('...', '');
             }
         });
     }
@@ -409,6 +515,8 @@ class AccountPage {
         alert.textContent = message;
 
         const container = document.getElementById(containerId);
+        if (!container) return;
+
         container.innerHTML = '';
         container.appendChild(alert);
         alert.style.display = 'block';
@@ -421,68 +529,7 @@ class AccountPage {
     }
 }
 
-// Глобальная переменная для доступа к методам страницы
-let accountPage = null;
-
-// Функции для глобального доступа из HTML
-function checkAuthAndLoadData() {
-    if (accountPage) {
-        accountPage.checkAuthAndLoadData();
-    }
-}
-
-function showNotAuthenticated() {
-    if (accountPage) {
-        accountPage.showNotAuthenticated();
-    }
-}
-
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    accountPage = new AccountPage();
+    window.accountPage = new AccountPage();
 });
-
-
-const accWidget = new AccountWidget({
-    apiBaseUrl: API_BASE_URL,
-    alignment: 'right',
-    container: '.new-menu-container',
-    accountPageUrl: '/account.html',
-    showSettings: false,
-    showProfiles: false,
-
-    onLogin: (user) => {
-        console.log('Пользователь вошел:', user);
-        currentUser = user;
-    },
-
-    onLogout: () => {
-        console.log('Пользователь вышел');
-        currentUser = null;
-        currentProfile = null;
-        profiles = [];
-    },
-
-    onAccountUpdate: (user) => {
-        console.log('Данные пользователя обновлены:', user);
-        currentUser = user;
-    },
-
-    onProfileClick: (profile) => {
-        console.log('Выбран профиль:', profile);
-    },
-
-    onSettingsClick: () => {
-        console.log('Toggle settings menu');
-    },
-
-    // Коллбек для обновления при загрузке/обновлении страницы
-    onAuthRefresh: (user, profilesList) => {
-        console.log('Состояние аутентификации обновлено:', user);
-        currentUser = user;
-        profiles = profilesList || [];
-    }
-});
-
-// Сохраняем для глобального доступа
-accountWidget = accWidget;

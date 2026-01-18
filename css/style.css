@@ -816,3 +816,188 @@ body.has-notification .container {
 body.has-notification .home-btn {
     bottom: 70px;
 }
+
+/* Account page styles */
+/* Дополнительные стили для страницы аккаунта */
+.account-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--primary-color);
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.account-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.info-label {
+    font-weight: 500;
+    color: #374151;
+}
+
+.info-value {
+    color: #6b7280;
+}
+
+.danger-zone {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 25px;
+    margin-top: 40px;
+}
+
+.danger-zone h3 {
+    color: #dc2626;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.danger-zone p {
+    color: #991b1b;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.profile-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.profile-card {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.profile-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 16px;
+}
+
+.profile-type {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.profile-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.profile-settings {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-state p {
+    margin-bottom: 15px;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #f3f4f6;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 12px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Стили для скроллбара */
+.profile-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.profile-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.profile-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.profile-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

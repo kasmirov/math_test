@@ -4,56 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройки аккаунта</title>
+    <link rel="stylesheet" href="./css/style.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8fafc;
-            color: #374151;
-            line-height: 1.6;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #3b82f6;
-        }
-
-        .container {
+        /* Дополнительные стили для страницы аккаунта */
+        .account-page {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
         .page-title {
             text-align: center;
-            margin-bottom: 40px;
-            color: #1f2937;
-            font-size: 32px;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            font-size: 28px;
             font-weight: 600;
         }
 
         .content-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            gap: 30px;
             margin-bottom: 40px;
         }
 
@@ -72,7 +43,7 @@
         }
 
         .card h2 {
-            color: #1f2937;
+            color: var(--primary-color);
             margin-bottom: 20px;
             font-size: 20px;
             font-weight: 600;
@@ -104,55 +75,33 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: var(--primary-color);
             background: white;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+        .account-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f3f4f6;
         }
 
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
+        .info-label {
+            font-weight: 500;
+            color: #374151;
         }
 
-        .btn-primary:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
+        .info-value {
+            color: #6b7280;
         }
 
         .danger-zone {
             background: #fef2f2;
             border: 1px solid #fecaca;
             border-radius: 12px;
-            padding: 30px;
+            padding: 25px;
             margin-top: 40px;
         }
 
@@ -166,6 +115,7 @@
             color: #991b1b;
             margin-bottom: 20px;
             font-size: 14px;
+            line-height: 1.4;
         }
 
         .profile-list {
@@ -183,8 +133,8 @@
         }
 
         .profile-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .profile-header {
@@ -279,8 +229,8 @@
         }
 
         .tab.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
 
         .tab-content {
@@ -309,117 +259,101 @@
         .profile-list::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
-
-        .new-menu-container {
-            display: flex;
-            justify-content: flex-end;
-            align-items: right;
-
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo" id="pageTitle">Математические тесты</div>
+            <div class="logo" id="pageTitle">Настройки аккаунта</div>
             <div class="new-menu-container" id="newMenu">
                 <!-- Виджет будет вставлен здесь -->
             </div>
         </header>
 
-        <h1 class="page-title">Настройки аккаунта</h1>
-
-        <div id="notAuthenticated" style="display: none;">
-            <div class="card">
-                <h2>Доступ запрещен</h2>
-                <p>Для доступа к настройкам аккаунта необходимо войти в систему.</p>
-                <button class="btn btn-primary" onclick="window.location.href='/'">На главную</button>
-            </div>
-        </div>
-
-        <div id="authenticatedContent" style="display: none;">
-            <div class="tabs">
-                <button class="tab active" data-tab="account">Аккаунт</button>
-                <button class="tab" data-tab="profiles">Профили</button>
-            </div>
-
-            <div class="tab-content active" id="account-tab">
-                <div class="content-grid">
-                    <div class="card">
-                        <h2>Основная информация</h2>
-                        <div id="accountAlert"></div>
-                        <form id="accountForm">
-                            <div class="form-group">
-                                <label for="accountEmail">Email:</label>
-                                <input type="email" id="accountEmail" class="form-control" readonly>
-                                <small style="color: #6b7280; font-size: 12px;">Email нельзя изменить</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="accountUsername">Имя пользователя:</label>
-                                <input type="text" id="accountUsername" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="accountPreferences">Настройки (JSON):</label>
-                                <textarea id="accountPreferences" class="form-control" rows="4" placeholder='{"theme": "dark", "language": "ru"}'></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                        </form>
-                    </div>
-
-                    <div class="card">
-                        <h2>Статистика</h2>
-                        <div class="form-group">
-                            <label>Дата регистрации:</label>
-                            <input type="text" id="accountCreatedAt" class="form-control" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Количество профилей:</label>
-                            <input type="text" id="profilesCount" class="form-control" readonly>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="danger-zone">
-                    <h3>Опасная зона</h3>
-                    <p>Удаление аккаунта невозможно отменить. Все ваши данные и профили будут безвозвратно удалены.</p>
-                    <button class="btn btn-danger" id="deleteAccountBtn">Удалить аккаунт</button>
+        <div class="account-page">
+            <div id="notAuthenticated" style="display: none;">
+                <div class="card">
+                    <h2>Доступ запрещен</h2>
+                    <p>Для доступа к настройкам аккаунта необходимо войти в систему.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/'">На главную</button>
                 </div>
             </div>
 
-            <div class="tab-content" id="profiles-tab">
-                <div class="content-grid">
-                    <div class="card">
-                        <h2>Создать профиль</h2>
-                        <div id="profileAlert"></div>
-                        <form id="createProfileForm">
-                            <div class="form-group">
-                                <label for="profileName">Название профиля:</label>
-                                <input type="text" id="profileName" class="form-control" required>
+            <div id="authenticatedContent" style="display: none;">
+                <div class="tabs">
+                    <button class="tab active" data-tab="account">Аккаунт</button>
+                    <button class="tab" data-tab="profiles">Профили</button>
+                </div>
+
+                <div class="tab-content active" id="account-tab">
+                    <div class="content-grid">
+                        <div class="card">
+                            <h2>Основная информация</h2>
+                            <div id="accountAlert"></div>
+                            <form id="accountForm">
+                                <div class="form-group">
+                                    <label for="accountEmail">Email:</label>
+                                    <input type="email" id="accountEmail" class="form-control" readonly>
+                                    <small style="color: #6b7280; font-size: 12px;">Email нельзя изменить</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="accountUsername">Имя пользователя:</label>
+                                    <input type="text" id="accountUsername" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h2>Информация об аккаунте</h2>
+                            <div class="account-info-row">
+                                <span class="info-label">Дата регистрации:</span>
+                                <span class="info-value" id="accountCreatedAt">—</span>
                             </div>
-                            <div class="form-group">
-                                <label for="profileType">Тип профиля:</label>
-                                <select id="profileType" class="form-control" required>
-                                    <option value="personal">Личный</option>
-                                    <option value="work">Рабочий</option>
-                                    <option value="game">Игровой</option>
-                                    <option value="other">Другой</option>
-                                </select>
+                            <div class="account-info-row">
+                                <span class="info-label">Количество профилей:</span>
+                                <span class="info-value" id="profilesCount">0</span>
                             </div>
-                            <div class="form-group">
-                                <label for="profileSettings">Настройки (JSON):</label>
-                                <textarea id="profileSettings" class="form-control" rows="3" placeholder='{"theme": "dark", "notifications": true}'></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Создать профиль</button>
-                        </form>
+                        </div>
                     </div>
 
-                    <div class="card">
-                        <h2>Мои профили</h2>
-                        <div class="profile-list" id="profilesList">
-                            <div class="empty-state">
-                                <p>У вас пока нет профилей</p>
-                                <p style="font-size: 12px;">Создайте первый профиль, используя форму слева</p>
+                    <div class="danger-zone">
+                        <h3>Удаление аккаунта</h3>
+                        <p>Удаление аккаунта невозможно отменить. Все ваши данные и профили будут безвозвратно удалены.</p>
+                        <button class="btn btn-danger" id="deleteAccountBtn">Удалить аккаунт</button>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="profiles-tab">
+                    <div class="content-grid">
+                        <div class="card">
+                            <h2>Создать профиль</h2>
+                            <div id="profileAlert"></div>
+                            <form id="createProfileForm">
+                                <div class="form-group">
+                                    <label for="profileName">Название профиля:</label>
+                                    <input type="text" id="profileName" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profileType">Тип профиля:</label>
+                                    <select id="profileType" class="form-control" required>
+                                        <option value="personal">Личный</option>
+                                        <option value="work">Рабочий</option>
+                                        <option value="game">Игровой</option>
+                                        <option value="other">Другой</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Создать профиль</button>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h2>Мои профили</h2>
+                            <div class="profile-list" id="profilesList">
+                                <div class="empty-state">
+                                    <p>У вас пока нет профилей</p>
+                                    <p style="font-size: 12px;">Создайте первый профиль, используя форму слева</p>
+                                </div>
                             </div>
                         </div>
                     </div>
