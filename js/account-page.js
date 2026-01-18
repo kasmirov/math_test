@@ -26,7 +26,7 @@ class AccountPage {
             container: '.new-menu-container',
             accountPageUrl: '/account.html',
             showSettings: false,
-            showProfiles: true,
+            showProfiles: false,
 
             onLogin: (user) => {
                 this.currentUser = user;
@@ -344,7 +344,7 @@ class AccountPage {
                 }
             });
 
-            input.addEventListener('blur', (e) => {
+            select.addEventListener('blur', (e) => {
                 if (this.editingProfileId === profileId) {
                     this.saveEditing(profileId, field, e.target.value);
                 }
@@ -415,10 +415,16 @@ class AccountPage {
             if (response.ok) {
                 const updatedProfile = await response.json();
 
-                // Обновляем данные в массиве
+                // Обновляем данные в массиве - явно обновляем поле
                 const index = this.profiles.findIndex(p => p.id === profileId);
                 if (index !== -1) {
-                    this.profiles[index] = { ...this.profiles[index], ...updatedProfile };
+                    // Явно обновляем поле, которое изменили
+                    this.profiles[index][field] = value;
+
+                    // Если сервер вернул обновленный профиль, обновляем остальные поля
+                    if (updatedProfile && typeof updatedProfile === 'object') {
+                        this.profiles[index] = { ...this.profiles[index], ...updatedProfile };
+                    }
                 }
 
                 // Обновляем виджет
@@ -431,7 +437,9 @@ class AccountPage {
 
                 this.showAlert('success', 'Профиль обновлен!', 'profileAlert');
                 this.cancelEditing();
-                this.loadProfilesTable(this.profiles);
+
+                // Вместо полной перезагрузки таблицы, обновляем только измененную строку
+                this.updateProfileRow(profileId);
             } else {
                 const error = await response.json();
                 this.showAlert('error', error.error || 'Ошибка при обновлении профиля', 'profileAlert');
@@ -440,6 +448,33 @@ class AccountPage {
         } catch (error) {
             this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
             this.cancelEditing();
+        }
+    }
+
+    // Добавьте эту новую функцию в класс
+    updateProfileRow(profileId) {
+        const profile = this.profiles.find(p => p.id === profileId);
+        if (!profile) return;
+
+        const row = document.querySelector(`tr[data-profile-id="${profileId}"]`);
+        if (!row) return;
+
+        // Обновляем ячейку с именем
+        const nameCell = row.querySelector('.profile-name-cell');
+        if (nameCell) {
+            nameCell.textContent = profile.name || '';
+        }
+
+        // Обновляем ячейку с типом профиля
+        const typeCell = row.querySelector('.profile-type-cell');
+        if (typeCell) {
+            typeCell.textContent = this.getProfileTypeName(profile.type || 'personal');
+        }
+
+        // Обновляем дату создания (на случай если она тоже изменилась)
+        const dateCell = row.querySelector('.created-date');
+        if (dateCell && profile.created_at) {
+            dateCell.textContent = new Date(profile.created_at).toLocaleDateString('ru-RU');
         }
     }
 

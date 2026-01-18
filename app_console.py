@@ -54,7 +54,7 @@ def work_on_mistakes(profile):
     selected_sections = get_generators().values()
 
     # Prepare questions for new session
-    generate_test_plan(profile,
+    generate_test_plan(profile['id'],
                        session_uuid,
                        selected_sections,
                        num_of_questions,
@@ -118,7 +118,7 @@ def display_profile_stats(profile):
     # История тестов
     for problem_key in get_solved_problems(profile):
         # Фильтруем вопросы с ошибками
-        history = get_history(profile, problem_key, is_correct=False)
+        history = get_history(profile["id"], problem_key, is_correct=False)
         if history:
             print("-" * 60)
             gen = get_generator(problem_key)
@@ -271,7 +271,7 @@ class MathTestApp:
         session_uuid = create_session(self.current_profile['id'])
 
         # Prepare questions for new session
-        generate_test_plan(self.current_profile,
+        generate_test_plan(self.current_profile['id'],
                            session_uuid,
                            selected_sections,
                            num_of_questions,

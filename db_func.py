@@ -262,7 +262,7 @@ def get_statistics(profile_id: int = None, problem_keys: List[str] = None,
         return statistics
 
 
-def get_history(profile,
+def get_history(profile_id,
                 problem_key: str,
                 date_start: datetime = None,
                 date_end: datetime = None,
@@ -282,9 +282,8 @@ def get_history(profile,
     Returns:
         Список словарей с историей задач, отсортированный по session_id и question_index
     """
-    if profile is None:
+    if not profile_id:
         return []
-    profile_id = profile["id"]
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -520,8 +519,9 @@ def get_questions_number(session_uuid):
         return len(cursor.fetchall())
 
 
-def add_question_to_session(profile, session_uuid, problem_key, question_index, question, correct_answer, timeout):
-    profile_id = profile["id"]
+def add_question_to_session(profile_id, session_uuid, problem_key, question_index, question, correct_answer, timeout):
+    if not profile_id:
+        profile_id = get_anonymous_profile()
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -662,11 +662,13 @@ def get_current_question_start_time(session_uuid):
         return cursor.fetchone()[0]
 
 
-def update_history(profile, session_uuid, users_answer, is_correct, is_timeout, time_sec):
+def update_history(profile_id, session_uuid, users_answer, is_correct, is_timeout, time_sec):
     """
     Отправить задачу в историю
     """
-    profile_id = profile["id"]
+    if not profile_id:
+        return
+
     problem_key, question_index, question, correct_answer, _ = get_question(session_uuid)
     if not problem_key:
         return
@@ -791,17 +793,15 @@ def update_mistakes(profile, session_uuid, is_correct):
         conn.commit()
 
 
-def get_mistakes(profile, problem_key) -> List[Dict]:
+def get_mistakes(profile_id, problem_key) -> List[Dict]:
     """
     Получить список нерешенных задач для указанного problem_key
     Returns:
         Список словарей с историей задач, отсортированный по session_id и question_index
     """
     # Return empty list for anonymous user
-    if profile is None:
+    if not profile_id:
         return []
-
-    profile_id = profile["id"]
 
     with get_db_connection() as conn:
         cursor = conn.cursor()

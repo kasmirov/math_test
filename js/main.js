@@ -1066,7 +1066,7 @@ function renderMathJax(element) {
 // Сохранение сессии (при старте теста и при отправке ответа)
 function saveSession(currentSessionId) {
 	// Сохраняем текущую сессию в localStorage
-	if (currentSessionId && currentUser) {
+	if (currentSessionId && currentUser && currentProfile) {
 		const activeTestSession = {
 			sessionId: currentSessionId,
 			userId: currentUser.id,

@@ -689,7 +689,7 @@ def create_new_session(is_authenticated=False, user_email=None):
     selected_sections = [ get_generator(block['section_key']) for block in question_blocks if block['id'] in block_ids ]
 
     # Prepare questions for new session
-    generate_test_plan({"id": profile_id},
+    generate_test_plan(profile_id,
                        session_uuid,
                        selected_sections,
                        num_of_questions=num_of_questions,
@@ -791,8 +791,6 @@ def submit_answer(session_uuid, is_authenticated=False, user_email=None):
     user_input = data['answer'].lower()
     user_input = user_input.strip()
 
-    profile = {"id": profile_id}
-
     if isinstance(correct_answer, Units):
         # Для генератора конвертации правильных ответов может быть несколько
         # Нормализуем ввод пользователя
@@ -825,9 +823,9 @@ def submit_answer(session_uuid, is_authenticated=False, user_email=None):
 
     if is_authenticated:
         # Store to history
-        update_history(profile, session_uuid, user_input, is_correct, is_timeout, timediff.total_seconds())
+        update_history(profile_id, session_uuid, user_input, is_correct, is_timeout, timediff.total_seconds())
         # Update mistakes
-        update_mistakes(profile, session_uuid, is_correct)
+        update_mistakes(profile_id, session_uuid, is_correct)
 
     new_idx = increase_current_question_idx(session_uuid)
 

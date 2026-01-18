@@ -138,3 +138,7 @@ class ProblemGenerator(ABC):
     def get_description(self):
         """Возвращает описание задания"""
         return self.description
+
+    def get_timeout(self):
+        """Возвращает таймаут по умолчанию"""
+        return self.default_timeout

@@ -65,7 +65,7 @@ def get_question_blocks():
                } for idx, key in enumerate(GENERATORS.keys())]
     return blocks
 
-def generate_test_plan(profile,
+def generate_test_plan(profile_id,
                        session_uuid,
                        generators,
                        num_of_questions,
@@ -73,7 +73,7 @@ def generate_test_plan(profile,
                        work_on_mistakes: bool = False):
     """
     Prepare questions for new session
-    :param profile: Profile
+    :param profile_id: Profile ID
     :param session_uuid: Session uuid
     :param generators: List of selected generators
     :param num_of_questions: Number of questions per section,
@@ -81,8 +81,7 @@ def generate_test_plan(profile,
     :param work_on_mistakes: In case of True only mistakes will be filled in test plan
     :return:
     """
-    if timeout is None:
-        timeout = DEFAULT_TIMEOUT
+
     if num_of_questions is None:
         num_of_questions = 1
     # TODO num of questions per section
@@ -93,13 +92,17 @@ def generate_test_plan(profile,
         problem_key = generator.get_key()
         section_question_idx = 0
 
+        if not timeout:
+            gen_timeout = generator.get_timeout()
+            timeout = gen_timeout if gen_timeout else DEFAULT_TIMEOUT
+
         # Добавляем задачи из предыдущих ошибок
-        mistakes_history = get_mistakes(profile, problem_key)
+        mistakes_history = get_mistakes(profile_id, problem_key)
 
         while section_question_idx < num_of_questions and section_question_idx < len(mistakes_history):
             question = mistakes_history[section_question_idx]['question']
             correct_answer = mistakes_history[section_question_idx]['correct_answer']
-            add_question_to_session(profile, session_uuid, problem_key, question_idx, question, correct_answer, timeout)
+            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, correct_answer, timeout)
             question_idx += 1
             section_question_idx += 1
 
@@ -108,7 +111,7 @@ def generate_test_plan(profile,
             continue
 
         # Запрос истории ранее выполнявшихся задач
-        questions_history = get_history(profile, problem_key, num_sessions=100)
+        questions_history = get_history(profile_id, problem_key, num_sessions=100)
         questions_history = [item["question"] for item in questions_history]
 
         start_time = time.time()
@@ -129,7 +132,7 @@ def generate_test_plan(profile,
                 continue
 
             questions_history.append(question)
-            add_question_to_session(profile, session_uuid, problem_key, question_idx, question, answer, timeout)
+            add_question_to_session(profile_id, session_uuid, problem_key, question_idx, question, answer, timeout)
             question_idx += 1
             section_question_idx += 1
             start_time = time.time()
