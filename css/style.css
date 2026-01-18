@@ -1001,3 +1001,267 @@ body.has-notification .home-btn {
 .profile-list::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* Стили для таблицы профилей */
+.table-container {
+    overflow-x: auto;
+    margin: 20px 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.profiles-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.profiles-table thead {
+    background-color: #f8fafc;
+}
+
+.profiles-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.profiles-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+.profiles-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.profiles-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.profiles-table tbody tr.selected {
+    background-color: #eff6ff;
+}
+
+/* Стили для редактируемых ячеек */
+.editable-cell {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.editable-cell:hover {
+    background-color: #f3f4f6;
+}
+
+.editable-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.editable-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.editable-select:focus {
+    outline: none;
+}
+
+/* Стили для кнопки редактирования настроек */
+.edit-settings-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-settings-btn:hover {
+    background-color: #e5e7eb;
+}
+
+/* Стили для модальных окон */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: #374151;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Стили для JSON редактора */
+.json-editor-container {
+    margin-top: 16px;
+}
+
+.json-editor-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.json-editor {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    background: #fafbfc;
+}
+
+.json-editor:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.json-error {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+    display: none;
+}
+
+.json-error.active {
+    display: block;
+}
+
+/* Стили для чекбоксов */
+.profile-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.table-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.empty-table-message {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Стили для даты создания */
+.created-date {
+    font-size: 13px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+/* Адаптивность таблицы */
+@media (max-width: 768px) {
+    .profiles-table th,
+    .profiles-table td {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .table-actions {
+        flex-direction: column;
+    }
+
+    .table-actions .btn {
+        width: 100%;
+    }
+}

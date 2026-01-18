@@ -5,6 +5,10 @@ class AccountPage {
     constructor() {
         this.currentUser = null;
         this.profiles = [];
+        this.selectedProfiles = new Set();
+        this.editingProfileId = null;
+        this.editingField = null;
+        this.originalValue = null;
         this.init();
     }
 
@@ -22,10 +26,9 @@ class AccountPage {
             container: '.new-menu-container',
             accountPageUrl: '/account.html',
             showSettings: false,
-            showProfiles: false,
+            showProfiles: true,
 
             onLogin: (user) => {
-                console.log('Пользователь вошел:', user);
                 this.currentUser = user;
                 this.showAuthenticated();
                 this.loadAccountData(user);
@@ -33,14 +36,13 @@ class AccountPage {
             },
 
             onLogout: () => {
-                console.log('Пользователь вышел');
                 this.currentUser = null;
                 this.profiles = [];
+                this.selectedProfiles.clear();
                 this.showNotAuthenticated();
             },
 
             onAccountUpdate: (user) => {
-                console.log('Данные пользователя обновлены:', user);
                 this.currentUser = user;
                 this.loadAccountData(user);
             },
@@ -50,18 +52,16 @@ class AccountPage {
             },
 
             onAuthRefresh: (user, profilesList) => {
-                console.log('Состояние аутентификации обновлено:', user);
                 this.currentUser = user;
                 this.profiles = profilesList || [];
                 if (user) {
                     this.showAuthenticated();
                     this.loadAccountData(user);
-                    this.loadProfilesData(this.profiles);
+                    this.loadProfilesTable(this.profiles);
                 }
             }
         });
 
-        // Сохраняем для глобального доступа
         window.accountWidget = accountWidget;
     }
 
@@ -82,26 +82,94 @@ class AccountPage {
             });
         }
 
-        // Форма создания профиля
-        const createProfileForm = document.getElementById('createProfileForm');
-        if (createProfileForm) {
-            createProfileForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.createProfile();
-            });
-        }
-
-        // Удаление аккаунта
+        // Кнопка удаления аккаунта
         const deleteAccountBtn = document.getElementById('deleteAccountBtn');
         if (deleteAccountBtn) {
             deleteAccountBtn.addEventListener('click', () => {
                 this.deleteAccount();
             });
         }
+
+        // Кнопка нового профиля
+        const newProfileBtn = document.getElementById('newProfileBtn');
+        if (newProfileBtn) {
+            newProfileBtn.addEventListener('click', () => {
+                this.showNewProfileModal();
+            });
+        }
+
+        // Кнопка удаления выбранных профилей
+        const deleteSelectedBtn = document.getElementById('deleteSelectedProfileBtn');
+        if (deleteSelectedBtn) {
+            deleteSelectedBtn.addEventListener('click', () => {
+                this.deleteSelectedProfiles();
+            });
+        }
+
+        // Глобальный обработчик для клавиш (Escape для отмены редактирования)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.editingProfileId) {
+                this.cancelEditing();
+            }
+        });
+
+        // Глобальный обработчик кликов для завершения редактирования
+        document.addEventListener('click', (e) => {
+            if (this.editingProfileId &&
+                !e.target.closest('.editable-input') &&
+                !e.target.closest('.editable-select') &&
+                !e.target.classList.contains('editable-cell')) {
+                this.saveCurrentEditing();
+            }
+        });
+
+        // Делегирование событий для таблицы
+        this.setupTableEventDelegation();
+    }
+
+    setupTableEventDelegation() {
+        const tbody = document.getElementById('profilesTableBody');
+        if (!tbody) return;
+
+        // Обработчик для чекбоксов
+        tbody.addEventListener('change', (e) => {
+            if (e.target.classList.contains('profile-checkbox')) {
+                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
+                const row = e.target.closest('tr');
+
+                if (e.target.checked) {
+                    this.selectedProfiles.add(profileId);
+                    row.classList.add('selected');
+                } else {
+                    this.selectedProfiles.delete(profileId);
+                    row.classList.remove('selected');
+                }
+
+                this.updateDeleteButton();
+            }
+        });
+
+        // Обработчик для редактируемых ячеек
+        tbody.addEventListener('click', (e) => {
+            const editableCell = e.target.closest('.editable-cell');
+            if (editableCell && !this.editingProfileId) {
+                e.stopPropagation();
+                const profileId = parseInt(editableCell.getAttribute('data-profile-id'));
+                const field = editableCell.getAttribute('data-field');
+                this.startEditing(editableCell, profileId, field);
+                return;
+            }
+
+            // Обработчик для кнопки редактирования настроек
+            if (e.target.classList.contains('edit-settings-btn')) {
+                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
+                this.showEditSettingsModal(profileId);
+                return;
+            }
+        });
     }
 
     switchTab(tabName) {
-        // Обновляем активные вкладки
         document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName);
         });
@@ -113,15 +181,13 @@ class AccountPage {
 
     async checkAuthAndLoadData() {
         try {
-            // Используем глобальный виджет для проверки аутентификации
             if (window.accountWidget && window.accountWidget.isAuthenticated()) {
                 this.currentUser = window.accountWidget.getUser();
                 this.profiles = window.accountWidget.getProfiles();
                 this.showAuthenticated();
                 this.loadAccountData(this.currentUser);
-                this.loadProfilesData(this.profiles);
+                this.loadProfilesTable(this.profiles);
             } else {
-                // Если виджет не аутентифицирован, пробуем самостоятельно
                 await this.loadAccountDataFromServer();
             }
         } catch (error) {
@@ -143,7 +209,7 @@ class AccountPage {
                 this.profiles = data.profiles || [];
                 this.showAuthenticated();
                 this.loadAccountData(this.currentUser);
-                this.loadProfilesData(this.profiles);
+                this.loadProfilesTable(this.profiles);
             } else {
                 this.showNotAuthenticated();
             }
@@ -191,82 +257,523 @@ class AccountPage {
         }
     }
 
-    loadProfilesData(profiles) {
-        const container = document.getElementById('profilesList');
-        if (!container) return;
+    loadProfilesTable(profiles) {
+        const tbody = document.getElementById('profilesTableBody');
+        if (!tbody) return;
+
+        this.selectedProfiles.clear();
+        this.updateDeleteButton();
 
         if (!profiles || profiles.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <p>У вас пока нет профилей</p>
-                    <p style="font-size: 12px;">Создайте первый профиль, используя форму слева</p>
-                </div>
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-table-message">
+                        У вас пока нет профилей. Нажмите "Новый профиль" для создания первого профиля.
+                    </td>
+                </tr>
             `;
             return;
         }
 
-        container.innerHTML = profiles.map(profile => `
-            <div class="profile-card" data-profile-id="${profile.id}">
-                <div class="profile-header">
-                    <div>
-                        <div class="profile-name">${profile.name}</div>
-                        <div class="profile-type">${this.getProfileTypeName(profile.type)}</div>
+        tbody.innerHTML = profiles.map(profile => `
+            <tr data-profile-id="${profile.id}" class="${this.selectedProfiles.has(profile.id) ? 'selected' : ''}">
+                <td>
+                    <input type="checkbox" class="profile-checkbox"
+                           data-profile-id="${profile.id}"
+                           ${this.selectedProfiles.has(profile.id) ? 'checked' : ''}>
+                </td>
+                <td>
+                    <div class="editable-cell profile-name-cell"
+                         data-profile-id="${profile.id}"
+                         data-field="name">
+                        ${profile.name || ''}
                     </div>
-                    <div class="profile-actions">
-                        <button class="btn btn-secondary edit-profile-btn" data-profile-id="${profile.id}">Ред.</button>
-                        <button class="btn btn-secondary clone-profile-btn" data-profile-id="${profile.id}">Клон</button>
-                        <button class="btn btn-danger delete-profile-btn" data-profile-id="${profile.id}">Уд.</button>
+                </td>
+                <td>
+                    <div class="editable-cell profile-type-cell"
+                         data-profile-id="${profile.id}"
+                         data-field="type">
+                        ${this.getProfileTypeName(profile.type || 'personal')}
                     </div>
-                </div>
-                ${Object.keys(profile.settings || {}).length > 0 ? `
-                    <div class="profile-settings">
-                        ${JSON.stringify(profile.settings, null, 2)}
+                </td>
+                <td>
+                    <button class="edit-settings-btn" data-profile-id="${profile.id}">
+                        Редактировать
+                    </button>
+                </td>
+                <td>
+                    <div class="created-date">
+                        ${profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : '—'}
                     </div>
-                ` : ''}
-                <div style="font-size: 11px; color: #9ca3af; margin-top: 8px;">
-                    Создан: ${new Date(profile.created_at).toLocaleDateString('ru-RU')}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    startEditing(cell, profileId, field) {
+        const profile = this.profiles.find(p => p.id === profileId);
+        if (!profile) return;
+
+        this.editingProfileId = profileId;
+        this.editingField = field;
+        this.originalValue = profile[field];
+
+        // Сохраняем текущее содержимое ячейки
+        const originalContent = cell.innerHTML;
+
+        if (field === 'name') {
+            cell.innerHTML = `
+                <input type="text" class="editable-input"
+                       value="${profile.name || ''}"
+                       data-profile-id="${profileId}"
+                       data-field="${field}">
+            `;
+
+            const input = cell.querySelector('.editable-input');
+            input.focus();
+            input.select();
+
+            // Сохраняем оригинальное содержимое в data-атрибуте
+            cell.dataset.originalContent = originalContent;
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.saveEditing(profileId, field, e.target.value);
+                } else if (e.key === 'Escape') {
+                    this.cancelEditing();
+                }
+            });
+
+            input.addEventListener('blur', (e) => {
+                if (this.editingProfileId === profileId) {
+                    this.saveEditing(profileId, field, e.target.value);
+                }
+            });
+        } else if (field === 'type') {
+            const typeOptions = [
+                { value: 'personal', label: 'Личный' },
+                { value: 'work', label: 'Рабочий' },
+                { value: 'game', label: 'Игровой' },
+                { value: 'other', label: 'Другой' }
+            ];
+
+            cell.innerHTML = `
+                <select class="editable-select"
+                        data-profile-id="${profileId}"
+                        data-field="${field}">
+                    ${typeOptions.map(option => `
+                        <option value="${option.value}" ${profile.type === option.value ? 'selected' : ''}>
+                            ${option.label}
+                        </option>
+                    `).join('')}
+                </select>
+            `;
+
+            const select = cell.querySelector('.editable-select');
+            select.focus();
+
+            // Сохраняем оригинальное содержимое в data-атрибуте
+            cell.dataset.originalContent = originalContent;
+
+            select.addEventListener('change', (e) => {
+                this.saveEditing(profileId, field, e.target.value);
+            });
+
+            select.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.cancelEditing();
+                }
+            });
+
+            select.addEventListener('blur', (e) => {
+                if (this.editingProfileId === profileId) {
+                    this.saveEditing(profileId, field, e.target.value);
+                }
+            });
+        }
+    }
+
+    async saveEditing(profileId, field, value) {
+        if (value === this.originalValue || !value.trim()) {
+            this.cancelEditing();
+            return;
+        }
+
+        try {
+            const updateData = {};
+            updateData[field] = field === 'type' ? value : value.trim();
+
+            const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                const updatedProfile = await response.json();
+
+                // Обновляем данные в массиве
+                const index = this.profiles.findIndex(p => p.id === profileId);
+                if (index !== -1) {
+                    this.profiles[index] = { ...this.profiles[index], ...updatedProfile };
+                }
+
+                // Обновляем виджет
+                if (window.accountWidget) {
+                    window.accountWidget.profiles = this.profiles;
+                    if (window.accountWidget.updateProfilesDisplay) {
+                        window.accountWidget.updateProfilesDisplay();
+                    }
+                }
+
+                this.showAlert('success', 'Профиль обновлен!', 'profileAlert');
+                this.cancelEditing();
+                this.loadProfilesTable(this.profiles);
+            } else {
+                const error = await response.json();
+                this.showAlert('error', error.error || 'Ошибка при обновлении профиля', 'profileAlert');
+                this.cancelEditing();
+            }
+        } catch (error) {
+            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
+            this.cancelEditing();
+        }
+    }
+
+    cancelEditing() {
+        if (!this.editingProfileId || !this.editingField) return;
+
+        // Восстанавливаем оригинальное содержимое ячейки
+        const cell = document.querySelector(`.editable-cell[data-profile-id="${this.editingProfileId}"][data-field="${this.editingField}"]`);
+        if (cell && cell.dataset.originalContent) {
+            cell.innerHTML = cell.dataset.originalContent;
+        }
+
+        this.editingProfileId = null;
+        this.editingField = null;
+        this.originalValue = null;
+    }
+
+    saveCurrentEditing() {
+        if (!this.editingProfileId || !this.editingField) return;
+
+        const cell = document.querySelector(`.editable-cell[data-profile-id="${this.editingProfileId}"][data-field="${this.editingField}"]`);
+        if (!cell) return;
+
+        if (this.editingField === 'name') {
+            const input = cell.querySelector('.editable-input');
+            if (input) {
+                this.saveEditing(this.editingProfileId, 'name', input.value);
+            }
+        } else if (this.editingField === 'type') {
+            const select = cell.querySelector('.editable-select');
+            if (select) {
+                this.saveEditing(this.editingProfileId, 'type', select.value);
+            }
+        }
+    }
+
+    showNewProfileModal() {
+        const modalHtml = `
+            <div class="modal-overlay" id="newProfileModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Новый профиль</h3>
+                        <button class="modal-close" id="closeNewProfileModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="newProfileName">Название профиля:</label>
+                            <input type="text" id="newProfileName" class="form-control" placeholder="Введите название">
+                        </div>
+                        <div class="form-group">
+                            <label for="newProfileType">Тип профиля:</label>
+                            <select id="newProfileType" class="form-control">
+                                <option value="personal">Личный</option>
+                                <option value="work">Рабочий</option>
+                                <option value="game">Игровой</option>
+                                <option value="other">Другой</option>
+                            </select>
+                        </div>
+                        <div class="json-editor-container">
+                            <label class="json-editor-label">Настройки (JSON):</label>
+                            <textarea id="newProfileSettings" class="json-editor" placeholder='{"theme": "dark", "notifications": true}'>{"theme": "light", "notifications": true}</textarea>
+                            <div class="json-error" id="newProfileJsonError">Неверный формат JSON</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelNewProfileBtn">Отмена</button>
+                        <button class="btn btn-primary" id="saveNewProfileBtn">Создать</button>
+                    </div>
                 </div>
             </div>
-        `).join('');
+        `;
 
-        // Добавляем обработчики для кнопок профилей
-        this.setupProfileEventListeners();
-    }
+        // Удаляем старую модалку если есть
+        const oldModal = document.getElementById('newProfileModal');
+        if (oldModal) oldModal.remove();
 
-    setupProfileEventListeners() {
-        // Редактирование профиля
-        document.querySelectorAll('.edit-profile-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
-                this.editProfile(profileId);
-            });
-        });
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        // Клонирование профиля
-        document.querySelectorAll('.clone-profile-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
-                this.cloneProfile(profileId);
-            });
-        });
+        const modal = document.getElementById('newProfileModal');
+        const closeBtn = document.getElementById('closeNewProfileModal');
+        const cancelBtn = document.getElementById('cancelNewProfileBtn');
+        const saveBtn = document.getElementById('saveNewProfileBtn');
 
-        // Удаление профиля
-        document.querySelectorAll('.delete-profile-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const profileId = parseInt(e.target.getAttribute('data-profile-id'));
-                this.deleteProfile(profileId);
-            });
-        });
-    }
-
-    getProfileTypeName(type) {
-        const types = {
-            'personal': 'Личный',
-            'work': 'Рабочий',
-            'game': 'Игровой',
-            'other': 'Другой'
+        const showModal = () => {
+            setTimeout(() => {
+                modal.classList.add('active');
+                document.getElementById('newProfileName').focus();
+            }, 10);
         };
-        return types[type] || type;
+
+        const hideModal = () => {
+            modal.classList.remove('active');
+            setTimeout(() => modal.remove(), 300);
+        };
+
+        closeBtn.addEventListener('click', hideModal);
+        cancelBtn.addEventListener('click', hideModal);
+
+        saveBtn.addEventListener('click', async () => {
+            const name = document.getElementById('newProfileName').value.trim();
+            const type = document.getElementById('newProfileType').value;
+            const settingsText = document.getElementById('newProfileSettings').value.trim();
+            const jsonError = document.getElementById('newProfileJsonError');
+
+            if (!name) {
+                this.showAlert('error', 'Название профиля обязательно', 'profileAlert');
+                return;
+            }
+
+            let settings = {};
+            if (settingsText) {
+                try {
+                    settings = JSON.parse(settingsText);
+                    jsonError.classList.remove('active');
+                } catch (e) {
+                    jsonError.classList.add('active');
+                    return;
+                }
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Создание...';
+
+            try {
+                await this.createProfile({ name, type, settings });
+                hideModal();
+            } catch (error) {
+                console.error('Error creating profile:', error);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Создать';
+            }
+        });
+
+        // Закрытие по клику вне модалки
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+
+        showModal();
+    }
+
+    showEditSettingsModal(profileId) {
+        const profile = this.profiles.find(p => p.id === profileId);
+        if (!profile) return;
+
+        const modalHtml = `
+            <div class="modal-overlay" id="editSettingsModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Настройки профиля "${profile.name}"</h3>
+                        <button class="modal-close" id="closeEditSettingsModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="json-editor-container">
+                            <label class="json-editor-label">Настройки (JSON):</label>
+                            <textarea id="editProfileSettings" class="json-editor">${JSON.stringify(profile.settings || {}, null, 2)}</textarea>
+                            <div class="json-error" id="editProfileJsonError">Неверный формат JSON</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelEditSettingsBtn">Отмена</button>
+                        <button class="btn btn-primary" id="saveEditSettingsBtn">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Удаляем старую модалку если есть
+        const oldModal = document.getElementById('editSettingsModal');
+        if (oldModal) oldModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modal = document.getElementById('editSettingsModal');
+        const closeBtn = document.getElementById('closeEditSettingsModal');
+        const cancelBtn = document.getElementById('cancelEditSettingsBtn');
+        const saveBtn = document.getElementById('saveEditSettingsBtn');
+
+        const showModal = () => {
+            setTimeout(() => {
+                modal.classList.add('active');
+                document.getElementById('editProfileSettings').focus();
+            }, 10);
+        };
+
+        const hideModal = () => {
+            modal.classList.remove('active');
+            setTimeout(() => modal.remove(), 300);
+        };
+
+        closeBtn.addEventListener('click', hideModal);
+        cancelBtn.addEventListener('click', hideModal);
+
+        saveBtn.addEventListener('click', async () => {
+            const settingsText = document.getElementById('editProfileSettings').value.trim();
+            const jsonError = document.getElementById('editProfileJsonError');
+
+            let settings = {};
+            if (settingsText) {
+                try {
+                    settings = JSON.parse(settingsText);
+                    jsonError.classList.remove('active');
+                } catch (e) {
+                    jsonError.classList.add('active');
+                    return;
+                }
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Сохранение...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ settings })
+                });
+
+                if (response.ok) {
+                    const updatedProfile = await response.json();
+
+                    // Обновляем данные в массиве
+                    const index = this.profiles.findIndex(p => p.id === profileId);
+                    if (index !== -1) {
+                        this.profiles[index] = updatedProfile;
+                    }
+
+                    // Обновляем виджет
+                    if (window.accountWidget) {
+                        window.accountWidget.profiles = this.profiles;
+                        if (window.accountWidget.updateProfilesDisplay) {
+                            window.accountWidget.updateProfilesDisplay();
+                        }
+                    }
+
+                    this.showAlert('success', 'Настройки профиля обновлены!', 'profileAlert');
+                    hideModal();
+                } else {
+                    const error = await response.json();
+                    this.showAlert('error', error.error || 'Ошибка при обновлении настроек', 'profileAlert');
+                }
+            } catch (error) {
+                this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Сохранить';
+            }
+        });
+
+        // Закрытие по клику вне модалки
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+
+        showModal();
+    }
+
+    async createProfile(profileData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/profiles`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(profileData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showAlert('success', 'Профиль создан!', 'profileAlert');
+
+                // Обновляем список профилей
+                await this.loadProfilesFromServer();
+                return result;
+            } else {
+                const error = await response.json();
+                this.showAlert('error', error.error || 'Ошибка при создании профиля', 'profileAlert');
+                throw new Error(error.error || 'Ошибка при создании профиля');
+            }
+        } catch (error) {
+            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
+            throw error;
+        }
+    }
+
+    async deleteSelectedProfiles() {
+        if (this.selectedProfiles.size === 0) return;
+
+        if (!confirm(`Вы уверены, что хотите удалить ${this.selectedProfiles.size} профиль(ей)?`)) {
+            return;
+        }
+
+        const deletePromises = Array.from(this.selectedProfiles).map(profileId =>
+            fetch(`${API_BASE_URL}/profiles/${profileId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+        );
+
+        try {
+            const results = await Promise.all(deletePromises);
+            const allSuccessful = results.every(response => response.ok);
+
+            if (allSuccessful) {
+                this.showAlert('success', 'Выбранные профили удалены!', 'profileAlert');
+                await this.loadProfilesFromServer();
+            } else {
+                this.showAlert('error', 'Не удалось удалить некоторые профили', 'profileAlert');
+            }
+        } catch (error) {
+            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
+        }
+    }
+
+    updateDeleteButton() {
+        const deleteBtn = document.getElementById('deleteSelectedProfileBtn');
+        if (!deleteBtn) return;
+
+        if (this.selectedProfiles.size > 0) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = `Удалить (${this.selectedProfiles.size})`;
+        } else {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Удалить';
+        }
     }
 
     async updateAccount() {
@@ -295,13 +802,8 @@ class AccountPage {
                 const result = await response.json();
                 this.showAlert('success', 'Настройки аккаунта обновлены!', 'accountAlert');
 
-                // Обновляем данные в виджете
                 if (window.accountWidget && result.user) {
                     window.accountWidget.currentUser = result.user;
-                    // Если у виджета есть метод updateUserInfo, используем его
-                    if (window.accountWidget.updateUserInfo) {
-                        window.accountWidget.updateUserInfo();
-                    }
                 }
             } else {
                 const error = await response.json();
@@ -311,123 +813,6 @@ class AccountPage {
             this.showAlert('error', 'Ошибка сети: ' + error.message, 'accountAlert');
         } finally {
             this.setLoadingState(false, 'accountForm');
-        }
-    }
-
-    async createProfile() {
-        const nameInput = document.getElementById('profileName');
-        const typeSelect = document.getElementById('profileType');
-
-        if (!nameInput || !typeSelect) return;
-
-        const formData = {
-            name: nameInput.value.trim(),
-            type: typeSelect.value
-        };
-
-        if (!formData.name) {
-            this.showAlert('error', 'Название профиля не может быть пустым', 'profileAlert');
-            return;
-        }
-
-        this.setLoadingState(true, 'createProfileForm');
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/profiles`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.showAlert('success', 'Профиль создан!', 'profileAlert');
-                nameInput.value = '';
-
-                // Обновляем список профилей
-                await this.loadProfilesFromServer();
-            } else {
-                const error = await response.json();
-                this.showAlert('error', error.error || 'Ошибка при создании профиля', 'profileAlert');
-            }
-        } catch (error) {
-            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
-        } finally {
-            this.setLoadingState(false, 'createProfileForm');
-        }
-    }
-
-    async editProfile(profileId) {
-        const profile = this.profiles.find(p => p.id === profileId);
-        if (!profile) return;
-
-        const newName = prompt('Введите новое название профиля:', profile.name);
-        if (newName && newName.trim() && newName !== profile.name) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ name: newName.trim() })
-                });
-
-                if (response.ok) {
-                    this.showAlert('success', 'Профиль обновлен!', 'profileAlert');
-                    await this.loadProfilesFromServer();
-                } else {
-                    const error = await response.json();
-                    this.showAlert('error', error.error || 'Не удалось обновить профиль', 'profileAlert');
-                }
-            } catch (error) {
-                this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
-            }
-        }
-    }
-
-    async cloneProfile(profileId) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/profiles/${profileId}/clone`, {
-                method: 'POST',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                this.showAlert('success', 'Профиль клонирован!', 'profileAlert');
-                await this.loadProfilesFromServer();
-            } else {
-                const error = await response.json();
-                this.showAlert('error', error.error || 'Не удалось клонировать профиль', 'profileAlert');
-            }
-        } catch (error) {
-            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
-        }
-    }
-
-    async deleteProfile(profileId) {
-        if (!confirm('Вы уверены, что хотите удалить этот профиль?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                this.showAlert('success', 'Профиль удален!', 'profileAlert');
-                await this.loadProfilesFromServer();
-            } else {
-                const error = await response.json();
-                this.showAlert('error', error.error || 'Не удалось удалить профиль', 'profileAlert');
-            }
-        } catch (error) {
-            this.showAlert('error', 'Ошибка сети: ' + error.message, 'profileAlert');
         }
     }
 
@@ -448,7 +833,6 @@ class AccountPage {
 
             if (response.ok) {
                 alert('Аккаунт удален!');
-                // Перенаправляем на главную страницу
                 window.location.href = '/';
             } else {
                 const error = await response.json();
@@ -469,15 +853,13 @@ class AccountPage {
             if (response.ok) {
                 const profiles = await response.json();
                 this.profiles = profiles;
-                this.loadProfilesData(profiles);
+                this.loadProfilesTable(profiles);
 
-                // Обновляем счетчик профилей
                 const profilesCountSpan = document.getElementById('profilesCount');
                 if (profilesCountSpan) {
                     profilesCountSpan.textContent = profiles.length;
                 }
 
-                // Обновляем виджет если он существует
                 if (window.accountWidget) {
                     window.accountWidget.profiles = profiles;
                     if (window.accountWidget.updateProfilesDisplay) {
@@ -526,6 +908,16 @@ class AccountPage {
                 alert.remove();
             }
         }, 5000);
+    }
+
+    getProfileTypeName(type) {
+        const types = {
+            'personal': 'Личный',
+            'work': 'Рабочий',
+            'game': 'Игровой',
+            'other': 'Другой'
+        };
+        return types[type] || type;
     }
 }
 

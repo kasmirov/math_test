@@ -325,37 +325,32 @@
                 </div>
 
                 <div class="tab-content" id="profiles-tab">
-                    <div class="content-grid">
-                        <div class="card">
-                            <h2>Создать профиль</h2>
-                            <div id="profileAlert"></div>
-                            <form id="createProfileForm">
-                                <div class="form-group">
-                                    <label for="profileName">Название профиля:</label>
-                                    <input type="text" id="profileName" class="form-control" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="profileType">Тип профиля:</label>
-                                    <select id="profileType" class="form-control" required>
-                                        <option value="personal">Личный</option>
-                                        <option value="work">Рабочий</option>
-                                        <option value="game">Игровой</option>
-                                        <option value="other">Другой</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Создать профиль</button>
-                            </form>
+                    <div class="card">
+                        <h2>Профили</h2>
+
+                        <div class="table-container">
+                            <table class="profiles-table" id="profilesTable">
+                                <thead>
+                                    <tr>
+                                        <th width="40"></th>
+                                        <th>Имя</th>
+                                        <th>Тип профиля</th>
+                                        <th>Настройки</th>
+                                        <th>Дата создания</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profilesTableBody">
+                                    <!-- Профили будут загружены динамически -->
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div class="card">
-                            <h2>Мои профили</h2>
-                            <div class="profile-list" id="profilesList">
-                                <div class="empty-state">
-                                    <p>У вас пока нет профилей</p>
-                                    <p style="font-size: 12px;">Создайте первый профиль, используя форму слева</p>
-                                </div>
-                            </div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" id="newProfileBtn">Новый профиль</button>
+                            <button class="btn btn-danger" id="deleteSelectedProfileBtn" disabled>Удалить</button>
                         </div>
+
+                        <div id="profileAlert"></div>
                     </div>
                 </div>
             </div>
