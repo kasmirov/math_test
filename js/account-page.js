@@ -20,7 +20,7 @@ class AccountPage {
 
     initAccountWidget() {
         // Инициализируем виджет с настройками для страницы аккаунта
-        const accountWidget = new AccountWidget({
+        const accountWidget = AccountWidget.getInstance({
             apiBaseUrl: API_BASE_URL,
             alignment: 'right',
             container: '.new-menu-container',

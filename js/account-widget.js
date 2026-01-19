@@ -1,5 +1,11 @@
 class AccountWidget {
     constructor(options = {}) {
+        // Если экземпляр уже существует, возвращаем его с обновленными опциями
+        if (AccountWidget.instance) {
+            AccountWidget.instance.updateOptions(options);
+            return AccountWidget.instance;
+        }
+
         this.options = {
             apiBaseUrl: options.apiBaseUrl || '',
             container: options.container || null,
@@ -13,7 +19,6 @@ class AccountWidget {
             onSettingsClick: options.onSettingsClick || (() => {}),
             showSettings: options.showSettings !== undefined ? options.showSettings : true,
             showProfiles: options.showProfiles !== undefined ? options.showProfiles : true,
-
             ...options
         };
 
@@ -25,6 +30,10 @@ class AccountWidget {
         this.tokenCheckInterval = null;
         this.lastActivityTime = Date.now();
 
+        // Сохраняем экземпляр как статическое свойство
+        AccountWidget.instance = this;
+
+        // Инициализируем сразу если DOM готов, иначе ждем загрузки
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
         } else {
@@ -32,15 +41,114 @@ class AccountWidget {
         }
     }
 
+    // Статическое свойство для хранения единственного экземпляра
+    static instance = null;
+
+    // Статическое свойство для общих данных между всеми страницами
+    static sharedState = {
+        currentUser: null,
+        profiles: [],
+        currentProfile: null
+    };
+
+    // Статический метод для получения экземпляра
+    static getInstance(options = {}) {
+        if (!AccountWidget.instance) {
+            AccountWidget.instance = new AccountWidget(options);
+        } else if (options) {
+            AccountWidget.instance.updateOptions(options);
+        }
+        return AccountWidget.instance;
+    }
+
+    // Метод для обновления опций существующего экземпляра
+    updateOptions(newOptions) {
+        this.options = { ...this.options, ...newOptions };
+        // Перерисовываем виджет с новыми опциями
+        if (this.isInitialized) {
+            this.render();
+            this.setupEventListeners();
+        }
+        return this;
+    }
+
+    // Метод для обновления состояния извне
+    updateState(user = null, profiles = null, currentProfile = null) {
+        if (user !== null) {
+            this.currentUser = user;
+            AccountWidget.sharedState.currentUser = user;
+        }
+        if (profiles !== null) {
+            this.profiles = profiles;
+            AccountWidget.sharedState.profiles = profiles;
+        }
+        if (currentProfile !== null) {
+            this.currentProfile = currentProfile;
+            AccountWidget.sharedState.currentProfile = currentProfile;
+        }
+
+        // Обновляем UI если виджет уже инициализирован
+        if (this.isInitialized && this.currentUser) {
+            this.updateUI();
+        }
+
+        return this;
+    }
+
+    // Обновление UI виджета
+    updateUI() {
+        const btn = this.container?.querySelector('#accountMainBtn');
+        if (!btn) return;
+
+        if (this.currentUser) {
+            if (this.options.showProfiles && this.currentProfile) {
+                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+            } else {
+                btn.textContent = this.currentUser.username;
+            }
+        } else {
+            btn.textContent = 'Войти';
+        }
+    }
+
+    // Обновление отображения профилей в дропдауне
+    updateProfilesDisplay() {
+        if (!this.options.showProfiles || !this.container) return;
+
+        const dropdown = this.container.querySelector('#accountDropdown');
+        if (!dropdown) return;
+
+        // Если дропдаун открыт и показывает меню аккаунта, обновляем его
+        if (dropdown.classList.contains('show') && this.currentUser) {
+            const profilesSection = dropdown.querySelector('.profiles-section');
+            if (profilesSection) {
+                profilesSection.innerHTML = `
+                    <div class="profiles-header">Профили</div>
+                    ${this.getProfilesListHTML()}
+                `;
+            }
+        }
+
+        // Обновляем кнопку
+        this.updateUI();
+    }
+
     async init() {
         if (this.isInitialized) return;
+
+        // Загружаем состояние из sharedState если есть
+        if (AccountWidget.sharedState.currentUser) {
+            this.currentUser = AccountWidget.sharedState.currentUser;
+            this.profiles = AccountWidget.sharedState.profiles || [];
+            this.currentProfile = AccountWidget.sharedState.currentProfile;
+        }
 
         this.createStyles();
         this.render();
         this.setupEventListeners();
-        // Автоматически стартуем проверку токенов
         this.startTokenMonitoring();
 
+        // Запускаем проверку аутентификации с небольшой задержкой
         setTimeout(async () => {
             await this.checkAuth();
         }, 100);
@@ -249,7 +357,7 @@ class AccountWidget {
             }
 
             .profiles-header {
-                padding: 2px 16px; /* Уменьшена высота вдвое */
+                padding: 2px 16px;
                 font-weight: 600;
                 color: #1f2937;
                 font-size: 14px;
@@ -351,30 +459,40 @@ class AccountWidget {
     }
 
     render() {
-        const container = document.createElement('div');
-        container.className = `account-widget ${this.options.alignment === 'right' ? 'right-aligned' : ''}`;
-        container.innerHTML = this.getWidgetHTML();
+        // Удаляем старый контейнер если есть
+        if (this.container && this.container.parentNode) {
+            this.container.remove();
+        }
 
+        // Создаем новый контейнер
+        this.container = document.createElement('div');
+        this.container.className = `account-widget ${this.options.alignment === 'right' ? 'right-aligned' : ''}`;
+        this.container.innerHTML = this.getWidgetHTML();
+
+        // Вставляем в целевой контейнер
         if (this.options.container) {
             const targetContainer = document.querySelector(this.options.container);
             if (targetContainer) {
                 if (this.options.container !== 'body') {
                     targetContainer.innerHTML = '';
                 }
-                targetContainer.appendChild(container);
+                targetContainer.appendChild(this.container);
             } else {
-                document.body.appendChild(container);
+                document.body.appendChild(this.container);
             }
         } else {
-            document.body.appendChild(container);
+            document.body.appendChild(this.container);
         }
 
-        this.container = container;
+        // Обновляем UI если пользователь уже авторизован
+        if (this.currentUser) {
+            this.updateUI();
+        }
     }
 
     getWidgetHTML() {
         return `
-            <button class="account-btn" id="accountMainBtn">Войти</button>
+            <button class="account-btn" id="accountMainBtn">${this.currentUser ? this.currentUser.username : 'Войти'}</button>
             <div class="account-dropdown" id="accountDropdown">
                 ${this.getAuthHTML()}
             </div>
@@ -470,6 +588,8 @@ class AccountWidget {
     }
 
     setupEventListeners() {
+        if (!this.container) return;
+
         this.container.addEventListener('click', (e) => {
             if (e.target.id === 'accountMainBtn') {
                 e.stopPropagation();
@@ -507,14 +627,15 @@ class AccountWidget {
         });
 
         document.addEventListener('click', (e) => {
-            if (!this.container.contains(e.target)) {
+            if (!this.container?.contains(e.target)) {
                 this.hideDropdown();
             }
         });
     }
 
     toggleDropdown() {
-        const dropdown = this.container.querySelector('#accountDropdown');
+        const dropdown = this.container?.querySelector('#accountDropdown');
+        if (!dropdown) return;
 
         if (dropdown.classList.contains('show')) {
             this.hideDropdown();
@@ -525,8 +646,10 @@ class AccountWidget {
     }
 
     hideDropdown() {
-        const dropdown = this.container.querySelector('#accountDropdown');
-        dropdown.classList.remove('show');
+        const dropdown = this.container?.querySelector('#accountDropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
+        }
     }
 
     switchAuthTab(tabName) {
@@ -554,7 +677,6 @@ class AccountWidget {
                 this.hideDropdown();
                 break;
             case 'switch-account':
-                // Показываем форму авторизации и оставляем меню открытым
                 this.showAuthForm();
                 break;
             case 'logout':
@@ -570,11 +692,11 @@ class AccountWidget {
         }
     }
 
-    // Новый метод для показа формы авторизации
     showAuthForm() {
-        const dropdown = this.container.querySelector('#accountDropdown');
-        dropdown.innerHTML = this.getAuthTabsHTML();
-        // Оставляем dropdown открытым
+        const dropdown = this.container?.querySelector('#accountDropdown');
+        if (dropdown) {
+            dropdown.innerHTML = this.getAuthTabsHTML();
+        }
     }
 
     handleProfileClick(profileId, profileName) {
@@ -584,6 +706,8 @@ class AccountWidget {
         if (!profile) return;
 
         this.currentProfile = profile;
+        AccountWidget.sharedState.currentProfile = profile;
+
         this.updateProfilesDisplay();
 
         if (this.options.onProfileClick) {
@@ -591,7 +715,6 @@ class AccountWidget {
         }
 
         this.hideDropdown();
-        console.log(`Профиль выбран: ${profileName} (ID: ${profileId})`);
     }
 
     async makeRequest(url, options = {}) {
@@ -608,7 +731,6 @@ class AccountWidget {
                 ...options
             });
 
-            // Если получили 401 - пробуем обновить токен
             if (response.status === 401 &&
                 !url.includes('/auth/refresh') &&
                 !url.includes('/auth/login') &&
@@ -618,10 +740,8 @@ class AccountWidget {
                 const refreshSuccess = await this.refreshToken();
 
                 if (refreshSuccess) {
-                    // Повторяем исходный запрос с новым токеном
                     return this.makeRequest(url, options);
                 } else {
-                    // Не удалось обновить - разлогиниваем
                     await this.logout();
                     throw new Error('Authentication failed');
                 }
@@ -649,32 +769,11 @@ class AccountWidget {
         }
     }
 
-    destroy() {
-        if (this.tokenCheckInterval) {
-            clearInterval(this.tokenCheckInterval);
-        }
-    }
-
-    setLoadingState(loading) {
-        const btn = this.container?.querySelector('#accountMainBtn');
-        if (btn) {
-            if (loading) {
-                btn.classList.add('loading');
-                btn.disabled = true;
-            } else {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
-        }
-    }
-
     startTokenMonitoring() {
-        // Проверяем состояние токена каждые 3 минуты
         this.tokenCheckInterval = setInterval(() => {
             this.checkAndRefreshToken();
-        }, 1 * 60000); // 1 минута
+        }, 1 * 60000);
 
-        // Следим за активностью пользователя
         document.addEventListener('click', () => this.updateActivityTime());
         document.addEventListener('keypress', () => this.updateActivityTime());
     }
@@ -684,12 +783,10 @@ class AccountWidget {
     }
 
     async checkAndRefreshToken() {
-        // Не обновляем если пользователь не авторизован
         if (!this.isAuthenticated() || this.isRefreshing) {
             return;
         }
 
-        // Проверяем, был ли пользователь активен в последние 5 минут
         const inactiveFor = Date.now() - this.lastActivityTime;
         if (inactiveFor > 5 * 60 * 1000) {
             console.log('Пользователь неактивен, пропускаем обновление токена');
@@ -698,8 +795,6 @@ class AccountWidget {
 
         try {
             this.isRefreshing = true;
-
-            // Пытаемся обновить токен
             const success = await this.refreshToken();
 
             if (success) {
@@ -723,7 +818,6 @@ class AccountWidget {
             if (response.ok) {
                 return true;
             } else {
-                // Если refresh не удался, разлогиниваем пользователя
                 await this.logout();
                 return false;
             }
@@ -739,8 +833,12 @@ class AccountWidget {
             if (result && result.user) {
                 this.currentUser = result.user;
                 this.profiles = this.options.showProfiles ? (result.profiles || []) : [];
-                await this.onAuthSuccess();
 
+                // Сохраняем в общее состояние
+                AccountWidget.sharedState.currentUser = this.currentUser;
+                AccountWidget.sharedState.profiles = this.profiles;
+
+                await this.onAuthSuccess();
                 this.options.onAuthRefresh(this.currentUser, this.profiles);
                 return true;
             }
@@ -752,8 +850,8 @@ class AccountWidget {
     }
 
     async login() {
-        const email = this.container.querySelector('#loginEmail').value;
-        const password = this.container.querySelector('#loginPassword').value;
+        const email = this.container?.querySelector('#loginEmail')?.value;
+        const password = this.container?.querySelector('#loginPassword')?.value;
 
         if (!email || !password) {
             this.showAlert('error', 'Заполните все поля', 'login-tab');
@@ -769,23 +867,26 @@ class AccountWidget {
 
             if (result && result.user) {
                 this.currentUser = result.user;
+                AccountWidget.sharedState.currentUser = this.currentUser;
 
                 if (this.options.showProfiles) {
                     try {
                         const accountData = await this.makeRequest('/account');
                         if (accountData && accountData.profiles) {
                             this.profiles = accountData.profiles;
+                            AccountWidget.sharedState.profiles = this.profiles;
                         }
                     } catch (e) {
                         await this.loadProfiles();
                     }
                 } else {
                     this.profiles = [];
+                    AccountWidget.sharedState.profiles = [];
                 }
 
                 await this.onAuthSuccess();
                 this.options.onLogin(this.currentUser);
-                this.container.querySelector('#loginForm').reset();
+                this.container.querySelector('#loginForm')?.reset();
                 this.hideDropdown();
             }
         } catch (error) {
@@ -794,9 +895,9 @@ class AccountWidget {
     }
 
     async register() {
-        const email = this.container.querySelector('#regEmail').value;
-        const username = this.container.querySelector('#regUsername').value;
-        const password = this.container.querySelector('#regPassword').value;
+        const email = this.container?.querySelector('#regEmail')?.value;
+        const username = this.container?.querySelector('#regUsername')?.value;
+        const password = this.container?.querySelector('#regPassword')?.value;
 
         if (!email || !username || !password) {
             this.showAlert('error', 'Заполните все поля', 'register-tab');
@@ -816,23 +917,26 @@ class AccountWidget {
 
             if (result && result.user) {
                 this.currentUser = result.user;
+                AccountWidget.sharedState.currentUser = this.currentUser;
 
                 if (this.options.showProfiles) {
                     try {
                         const accountData = await this.makeRequest('/account');
                         if (accountData && accountData.profiles) {
                             this.profiles = accountData.profiles;
+                            AccountWidget.sharedState.profiles = this.profiles;
                         }
                     } catch (e) {
                         await this.loadProfiles();
                     }
                 } else {
                     this.profiles = [];
+                    AccountWidget.sharedState.profiles = [];
                 }
 
                 await this.onAuthSuccess();
                 this.options.onLogin(this.currentUser);
-                this.container.querySelector('#registerForm').reset();
+                this.container.querySelector('#registerForm')?.reset();
                 this.hideDropdown();
             }
         } catch (error) {
@@ -846,11 +950,17 @@ class AccountWidget {
                 method: 'POST'
             });
         } catch (error) {
-            // Ignore errors during logout
+            // Игнорируем ошибки при выходе
         } finally {
             this.currentUser = null;
             this.profiles = [];
             this.currentProfile = null;
+
+            // Очищаем общее состояние
+            AccountWidget.sharedState.currentUser = null;
+            AccountWidget.sharedState.profiles = [];
+            AccountWidget.sharedState.currentProfile = null;
+
             this.onLogout();
             this.options.onLogout();
         }
@@ -863,50 +973,62 @@ class AccountWidget {
             const result = await this.makeRequest('/profiles');
             if (result && !result.error) {
                 this.profiles = result;
+                AccountWidget.sharedState.profiles = this.profiles;
                 this.updateProfilesDisplay();
             }
         } catch (error) {
-            // Error handled in makeRequest
+            // Ошибка обработана в makeRequest
         }
     }
 
     async onAuthSuccess() {
-        const btn = this.container.querySelector('#accountMainBtn');
-        if (this.options.showProfiles && this.currentProfile) {
-            btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
-        } else {
-            btn.textContent = this.currentUser.username;
+        // Сохраняем состояние
+        AccountWidget.sharedState.currentUser = this.currentUser;
+        AccountWidget.sharedState.profiles = this.profiles;
+        AccountWidget.sharedState.currentProfile = this.currentProfile;
+
+        const btn = this.container?.querySelector('#accountMainBtn');
+        if (btn) {
+            if (this.options.showProfiles && this.currentProfile) {
+                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+            } else {
+                btn.textContent = this.currentUser.username;
+            }
         }
 
-        const dropdown = this.container.querySelector('#accountDropdown');
-        dropdown.innerHTML = this.getAccountMenuHTML();
+        const dropdown = this.container?.querySelector('#accountDropdown');
+        if (dropdown) {
+            dropdown.innerHTML = this.getAccountMenuHTML();
+        }
     }
 
     onLogout() {
-        const btn = this.container.querySelector('#accountMainBtn');
-        btn.textContent = 'Войти';
+        // Очищаем общее состояние
+        AccountWidget.sharedState.currentUser = null;
+        AccountWidget.sharedState.profiles = [];
+        AccountWidget.sharedState.currentProfile = null;
 
-        const dropdown = this.container.querySelector('#accountDropdown');
-        dropdown.innerHTML = this.getAuthTabsHTML();
-    }
-
-    updateProfilesDisplay() {
-        if (!this.options.showProfiles) return;
-
-        const dropdown = this.container.querySelector('#accountDropdown');
-        const profilesSection = dropdown.querySelector('.profiles-section');
-        if (profilesSection) {
-            profilesSection.innerHTML = `
-                <div class="profiles-header">Профили</div>
-                ${this.getProfilesListHTML()}
-            `;
+        const btn = this.container?.querySelector('#accountMainBtn');
+        if (btn) {
+            btn.textContent = 'Войти';
         }
 
-        const btn = this.container.querySelector('#accountMainBtn');
-        if (this.currentProfile) {
-            btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
-        } else {
-            btn.textContent = this.currentUser.username;
+        const dropdown = this.container?.querySelector('#accountDropdown');
+        if (dropdown) {
+            dropdown.innerHTML = this.getAuthTabsHTML();
+        }
+    }
+
+    setLoadingState(loading) {
+        const btn = this.container?.querySelector('#accountMainBtn');
+        if (btn) {
+            if (loading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
         }
     }
 
@@ -928,9 +1050,9 @@ class AccountWidget {
 
         let targetContainer;
         if (containerId) {
-            targetContainer = this.container.querySelector(`#${containerId}`);
+            targetContainer = this.container?.querySelector(`#${containerId}`);
         } else {
-            targetContainer = this.container.querySelector('.auth-tab-content');
+            targetContainer = this.container?.querySelector('.auth-tab-content');
         }
 
         if (targetContainer) {
@@ -969,6 +1091,7 @@ class AccountWidget {
         const profile = this.profiles.find(p => p.id === profileId);
         if (profile) {
             this.currentProfile = profile;
+            AccountWidget.sharedState.currentProfile = profile;
             this.updateProfilesDisplay();
         }
     }
@@ -980,7 +1103,19 @@ class AccountWidget {
     async refreshAuthState() {
         return await this.checkAuth();
     }
+
+    destroy() {
+        if (this.tokenCheckInterval) {
+            clearInterval(this.tokenCheckInterval);
+        }
+
+        if (this.container && this.container.parentNode) {
+            this.container.remove();
+        }
+
+        AccountWidget.instance = null;
+    }
 }
 
-// Глобальная переменная для доступа извне
+// Глобальная переменная для обратной совместимости
 let accountWidget = null;

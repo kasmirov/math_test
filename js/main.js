@@ -1206,7 +1206,7 @@ function loadLastProfile() {
     }
 }
 
-const accWidget = new AccountWidget({
+const accWidget = AccountWidget.getInstance({
     apiBaseUrl: API_BASE_URL,
     alignment: 'right',
     container: '.new-menu-container',
