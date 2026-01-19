@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	loadBlocks();
 
 	// Загружаем профиль, если был логин
-	loadProfile();
+	loadLastProfile();
 
 	// Загружаем настройки
 	loadSettings();
@@ -691,7 +691,6 @@ async function loadNextQuestion() {
 		answerInput.focus();
 
 		// Запускаем таймер
-		// TODO questionData.time_limit ?
 		timeLeft = currentQuestion.time_limit;
 		updateTimerDisplay();
 
@@ -1189,7 +1188,7 @@ function storeProfile() {
 	}
 }
 
-function loadProfile() {
+function loadLastProfile() {
     if (currentUser === null) {
         return;
     }
@@ -1218,7 +1217,7 @@ const accWidget = new AccountWidget({
         currentUser = user;
 
         // Восстанавливаем выбранный профиль если он был
-        loadProfile();
+        loadLastProfile();
         loadSettings();
         updateAppInfo();
 
@@ -1280,8 +1279,8 @@ const accWidget = new AccountWidget({
         currentUser = user;
         profiles = profilesList || [];
 
-        // Восстанавливаем выбранный профиль если он был
-        loadProfile();
+        //TODO ? Восстанавливаем выбранный профиль если он был
+        //loadLastProfile();
         loadSettings();
         updateAppInfo();
 
