@@ -161,7 +161,7 @@ class AccountWidget {
 
     // Обновление отображения профилей в дропдауне
     updateProfilesDisplay() {
-        if (!this.options.showProfiles || !this.container) return;
+        if (!this.container) return;
 
         const dropdown = this.container.querySelector('#accountDropdown');
         if (!dropdown) return;
@@ -202,7 +202,7 @@ class AccountWidget {
 
         // Затем проверяем актуальность токена
         setTimeout(async () => {
-            await this.checkAuth();
+            await this.getAccountInfo();
         }, 100);
 
         this.isInitialized = true;
@@ -555,8 +555,8 @@ class AccountWidget {
     getWidgetHTML() {
         return `
             <button class="account-btn" id="accountMainBtn">${this.currentUser ?
-                (this.options.showProfiles && this.currentProfile ?
-                    `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>` :
+                (this.currentProfile ? `${this.currentUser.username}
+                    <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>` :
                     this.currentUser.username) :
                 'Войти'}</button>
             <div class="account-dropdown" id="accountDropdown">
@@ -632,10 +632,6 @@ class AccountWidget {
     }
 
     getProfilesListHTML() {
-        if (!this.options.showProfiles) {
-            return '';
-        }
-
         if (!this.profiles.length) {
             return '<div class="profile-item" style="color: #9ca3af; cursor: default;">Нет профилей</div>';
         }
@@ -795,8 +791,6 @@ class AccountWidget {
     }
 
     handleProfileClick(profileId, profileName) {
-        if (!this.options.showProfiles) return;
-
         const profile = this.profiles.find(p => p.id === profileId);
         if (!profile) return;
 
@@ -922,15 +916,15 @@ class AccountWidget {
         }
     }
 
-    async checkAuth() {
+    async getAccountInfo() {
         try {
             const result = await this.makeRequest('/account');
             if (result && result.user) {
                 this.currentUser = result.user;
-                this.profiles = this.options.showProfiles ? (result.profiles || []) : [];
+                this.profiles = result.profiles || [];
 
                 // Восстанавливаем текущий профиль из сохраненного состояния или выбираем первый
-                if (this.options.showProfiles && this.profiles.length > 0) {
+                if (this.profiles.length > 0) {
                     const savedProfileId = this.currentProfile?.id;
                     const savedProfile = savedProfileId ?
                         this.profiles.find(p => p.id === savedProfileId) : null;
@@ -976,28 +970,26 @@ class AccountWidget {
             if (result && result.user) {
                 this.currentUser = result.user;
 
-                if (this.options.showProfiles) {
-                    try {
-                        const accountData = await this.makeRequest('/account');
-                        if (accountData && accountData.profiles) {
-                            this.profiles = accountData.profiles;
-                            this.currentProfile = this.profiles[0] || null;
-                        }
-                    } catch (e) {
-                        await this.loadProfiles();
+                try {
+                    const accountData = await this.makeRequest('/account');
+                    if (accountData && accountData.profiles) {
+                        this.profiles = accountData.profiles;
+                        this.currentProfile = this.profiles[0] || null;
                     }
-                } else {
-                    this.profiles = [];
-                    this.currentProfile = null;
+                } catch (e) {
+                    await this.loadProfiles();
                 }
 
-                this.saveToStorage(); // Сохраняем состояние после логина
+                this.saveToStorage();
                 await this.onAuthSuccess();
                 this.options.onLogin(this.currentUser);
                 this.container.querySelector('#loginForm')?.reset();
                 this.hideDropdown();
             }
         } catch (error) {
+            this.currentUser = null;
+            this.profiles = [];
+            this.currentProfile = null;
             this.showAlert('error', error.message, 'login-tab');
         }
     }
@@ -1022,7 +1014,7 @@ class AccountWidget {
                 method: 'POST',
                 body: JSON.stringify({ email, username, password })
             });
-
+            /*
             if (result && result.user) {
                 this.currentUser = result.user;
 
@@ -1037,8 +1029,7 @@ class AccountWidget {
                         await this.loadProfiles();
                     }
                 } else {
-                    this.profiles = [];
-                    this.currentProfile = null;
+
                 }
 
                 this.saveToStorage(); // Сохраняем состояние после регистрации
@@ -1047,6 +1038,7 @@ class AccountWidget {
                 this.container.querySelector('#registerForm')?.reset();
                 this.hideDropdown();
             }
+            */
         } catch (error) {
             this.showAlert('error', error.message, 'register-tab');
         }
@@ -1071,8 +1063,6 @@ class AccountWidget {
     }
 
     async loadProfiles() {
-        if (!this.options.showProfiles) return;
-
         try {
             const result = await this.makeRequest('/profiles');
             if (result && !result.error) {
@@ -1081,6 +1071,7 @@ class AccountWidget {
                 this.updateProfilesDisplay();
             }
         } catch (error) {
+            // TODO  log
             // Ошибка обработана в makeRequest
         }
     }
@@ -1178,16 +1169,14 @@ class AccountWidget {
     }
 
     getProfiles() {
-        return this.options.showProfiles ? this.profiles : [];
+        return this.profiles;
     }
 
     getCurrentProfile() {
-        return this.options.showProfiles ? this.currentProfile : null;
+        return this.currentProfile;
     }
 
     setCurrentProfile(profileId) {
-        if (!this.options.showProfiles) return;
-
         const profile = this.profiles.find(p => p.id === profileId);
         if (profile) {
             this.currentProfile = profile;
@@ -1201,7 +1190,7 @@ class AccountWidget {
     }
 
     async refreshAuthState() {
-        return await this.checkAuth();
+        return await this.getAccountInfo();
     }
 
     destroy() {
