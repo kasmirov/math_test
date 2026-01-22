@@ -150,7 +150,7 @@ class AccountWidget {
 
         if (this.currentUser) {
             if (this.options.showProfiles && this.currentProfile) {
-                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 12px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
             } else {
                 btn.textContent = this.currentUser.username;
             }
@@ -1014,31 +1014,6 @@ class AccountWidget {
                 method: 'POST',
                 body: JSON.stringify({ email, username, password })
             });
-            /*
-            if (result && result.user) {
-                this.currentUser = result.user;
-
-                if (this.options.showProfiles) {
-                    try {
-                        const accountData = await this.makeRequest('/account');
-                        if (accountData && accountData.profiles) {
-                            this.profiles = accountData.profiles;
-                            this.currentProfile = this.profiles[0] || null;
-                        }
-                    } catch (e) {
-                        await this.loadProfiles();
-                    }
-                } else {
-
-                }
-
-                this.saveToStorage(); // Сохраняем состояние после регистрации
-                await this.onAuthSuccess();
-                this.options.onLogin(this.currentUser);
-                this.container.querySelector('#registerForm')?.reset();
-                this.hideDropdown();
-            }
-            */
         } catch (error) {
             this.showAlert('error', error.message, 'register-tab');
         }
@@ -1083,7 +1058,7 @@ class AccountWidget {
         const btn = this.container?.querySelector('#accountMainBtn');
         if (btn) {
             if (this.options.showProfiles && this.currentProfile) {
-                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 12px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
             } else {
                 btn.textContent = this.currentUser.username;
             }
