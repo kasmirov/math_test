@@ -273,7 +273,7 @@ class ClockGenerator(ProblemGenerator):
         templates = list(set(templates))
         return random.choice(templates)
 
-    def generate_problem(self):
+    def generate_problem(self, limits=None):
         """Генерирует задачу с часами или текстовым описанием"""
         # Генерируем случайное время
         hour = random.randint(0, 23)
@@ -316,7 +316,7 @@ class ClockGenerator(ProblemGenerator):
 
         return html_code, answer
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Определение времени по аналоговым часам или описанию (детальные часы)"
 
     def get_key(self):
@@ -352,7 +352,7 @@ class ClockGeneratorSimple(ClockGenerator):
         super().__init__(mode=mode)
         self.tags["grade"] = ["2 класс"]
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Определение времени по аналоговым часам (стандартный циферблат)"
 
     def get_key(self):
@@ -366,7 +366,7 @@ class ClockGeneratorHard(ClockGenerator):
         self.tags["grade"] = ["3 класс"]
         self.clock_style = "minimal"
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Определение времени по аналоговым часам или описанию (минималистичный циферблат)"
 
     def get_key(self):

@@ -7,15 +7,14 @@ from generate_operators import generate_operators
 class EquationGenerator(ProblemGenerator):
     """Генератор простых уравнений"""
 
-    def __init__(self, limits, latex=False):
+    def __init__(self, latex=False):
         super().__init__(default_timeout=60, latex=latex)
-        self.limits = limits
         self.tags["grade"] = ["2 класс", "3 класс"]
         self.tags["subject"] = ["Математика"]
         self.tags["topic"] = ["Простые операции", "Уравнения", "Сложение и вычитание", "Умножение", "Деление"]
 
 
-    def generate_problem(self):
+    def generate_problem(self, limits):
         operations = ['+', '-', '×', '÷']
         latex_symbol = {'+': '+', '-': '-', '×': '\\times', '÷': '\\div'}
 
@@ -23,7 +22,7 @@ class EquationGenerator(ProblemGenerator):
         op_symbol = random.choice(operations)
 
         # Генерируем числа
-        a, b, result = generate_operators(op_symbol, self.limits)
+        a, b, result = generate_operators(op_symbol, limits)
 
         # Где разместить неизвестное (x)
         position = random.choice(['left', 'right', 'result'])
@@ -49,7 +48,7 @@ class EquationGenerator(ProblemGenerator):
 
         return problem, answer
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Простые уравнения"
 
     def get_key(self):

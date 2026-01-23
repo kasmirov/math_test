@@ -101,12 +101,12 @@ class ProblemGenerator(ABC):
         engine.runAndWait()
 
     @abstractmethod
-    def generate_problem(self):
+    def generate_problem(self, limits):
         """Генерирует задачу и возвращает (текст, правильный ответ)"""
         pass
 
     @abstractmethod
-    def get_section_name(self):
+    def get_section_name(self, limits):
         """Возвращает отображаемое имя раздела"""
         pass
 

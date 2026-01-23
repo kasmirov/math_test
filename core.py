@@ -9,7 +9,7 @@ from generator_div import DivisionGenerator
 from generator_equation import EquationGenerator
 from generator_mul import MultiplicationGenerator
 from generator_priority import PriorityOperationsGenerator
-from generator_priority_3rd_grade import PriorityOperationsGenerator3rd
+from generator_priority_3rd_grade import PriorityOperationsGenerator3rd, PriorityOperationsGenerator4th
 from generator_yaml import YamlProblemGenerator
 from generator_geom_fig_props import GeometryFigurePropertiesGenerator
 from generator_fraction import FractionGenerator
@@ -27,21 +27,22 @@ GENERATORS = {}
 # Default timeout for questions
 DEFAULT_TIMEOUT = 1000
 
-def explore_static_generators(limits, latex=False, has_text_mode=None):
+def explore_static_generators(latex=False, has_text_mode=None):
     global GENERATORS
     GENERATORS = {
         gen.get_key(): gen for gen in [
-            AdditionSubtractionGenerator(limits, latex),
-            MultiplicationGenerator(limits, latex),
-            DivisionGenerator(limits, latex),
-            EquationGenerator(limits, latex),
-            PriorityOperationsGenerator(limits, latex),
-            PriorityOperationsGenerator3rd(limits),
-            ComparisonGenerator(limits),
-            ConversionGenerator(limits),
+            AdditionSubtractionGenerator(latex),
+            MultiplicationGenerator(latex),
+            DivisionGenerator(latex),
+            EquationGenerator(latex),
+            PriorityOperationsGenerator(latex),
+            PriorityOperationsGenerator3rd(),
+            PriorityOperationsGenerator4th(),
+            ComparisonGenerator(),
+            ConversionGenerator(),
             YamlProblemGenerator("2nd_grade.yaml"),
             YamlProblemGenerator("3rd_grade.yaml"),
-            GeometryFigurePropertiesGenerator(limits),
+            GeometryFigurePropertiesGenerator(),
             FractionGenerator(base_limits()),
             ClockGeneratorSimple(),
             ClockGeneratorHard()
@@ -54,9 +55,9 @@ def get_generators():
 def get_generator(section_key):
     return GENERATORS.get(section_key)
 
-def get_question_blocks():
+def get_question_blocks(limits):
     blocks = [{"id": idx,
-               "name": GENERATORS.get(key).get_section_name(),
+               "name": GENERATORS.get(key).get_section_name(limits),
                "description": GENERATORS.get(key).get_description(),
                "hint": GENERATORS.get(key).get_hint(),
                "question_count": GENERATORS.get(key).get_problems_number(),
@@ -69,6 +70,7 @@ def generate_test_plan(profile_id,
                        session_uuid,
                        generators,
                        num_of_questions,
+                       limits,
                        timeout: int = DEFAULT_TIMEOUT,
                        work_on_mistakes: bool = False):
     """
@@ -84,7 +86,6 @@ def generate_test_plan(profile_id,
 
     if num_of_questions is None:
         num_of_questions = 1
-    # TODO num of questions per section
 
     question_idx = 0
 
@@ -118,7 +119,7 @@ def generate_test_plan(profile_id,
         while section_question_idx < num_of_questions:
             # Generate new question
             try:
-                question, answer = generator.generate_problem()
+                question, answer = generator.generate_problem(limits)
             except Exception as e:
                 continue
 
@@ -138,6 +139,7 @@ def generate_test_plan(profile_id,
             start_time = time.time()
 
 
+# Console
 def run_test(profile, session_uuid, save_history: bool = True):
     q_total = get_questions_number(session_uuid)
     prev_problem_key = ""
@@ -151,7 +153,7 @@ def run_test(profile, session_uuid, save_history: bool = True):
         update_current_question_start_time(session_uuid)
         # Show section
         if prev_problem_key != problem_key:
-            print(f"\n--- Раздел: {get_generator(problem_key).get_section_name()} ---")
+            print(f"\n--- Раздел: {get_generator(problem_key).get_section_name(profile['settings']['limits'])} ---")
             prev_problem_key = problem_key
         # Show question
         print(f"Вопрос {question_index + 1}/{q_total}: {question}")
@@ -199,10 +201,10 @@ def run_test(profile, session_uuid, save_history: bool = True):
 
         # Store to history
         if save_history:
-            update_history(profile, session_uuid, user_input, is_correct, is_timeout, timediff.total_seconds())
+            update_history(profile["id"], session_uuid, user_input, is_correct, is_timeout, timediff.total_seconds())
 
         # Update mistakes
-        update_mistakes(profile, session_uuid, is_correct)
+        update_mistakes(profile["id"], session_uuid, is_correct)
 
         new_idx = increase_current_question_idx(session_uuid)
         if new_idx == q_total:

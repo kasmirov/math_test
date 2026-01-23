@@ -8,15 +8,14 @@ from units import Length, Weight, Volume
 class ComparisonGenerator(ProblemGenerator):
     """Генератор задач на сравнение величин"""
 
-    def __init__(self, limits):
+    def __init__(self):
         super().__init__(default_timeout=30)
-        self.limits = limits
         self.tags["grade"] = ["1 класс", "2 класс"]
         self.tags["subject"] = ["Математика"]
         self.tags["topic"] = ["Простые операции", "Сравнение величин"]
 
 
-    def generate_problem(self):
+    def generate_problem(self, limits=None):
         # Выбираем тип величины + class
         unit_types = {
             'длина': Length,
@@ -83,7 +82,7 @@ class ComparisonGenerator(ProblemGenerator):
 
         return problem, correct_answer
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Сравнение величин"
 
     def get_key(self):

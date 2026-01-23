@@ -1,3 +1,5 @@
+from win32comext.axscript.client.framework import profile
+
 from core import get_generator
 
 
@@ -131,7 +133,6 @@ class MenuManager:
         print("\nРезультаты теста:")
         print("=" * 60)
 
-        res = results.items()
         for problem_key, result in results.items():
             gen = get_generator(problem_key)
             if gen is None:

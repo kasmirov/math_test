@@ -63,6 +63,21 @@ def get_user_profiles(user_id):
 
 
 # desktop use only
+def get_profile_data(profile_id):
+    """Получение данных профиля"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM profiles WHERE id = ?', (profile_id,))
+        profile = cursor.fetchone()
+        return dict(profile)
+
+
+def get_profile_limits(profile_id):
+    settings = json.loads(get_profile_data(profile_id)["settings"])
+    return settings['limits']
+
+
+# desktop use only
 def create_profile(user_id, profile_name):
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -100,14 +115,13 @@ def delete_profile(profile):
         conn.commit()
 
 
-def get_solved_problems(profile):
+def get_solved_problems(profile_id):
     """
     Получить список решаемых ранее генераторов задач (разделов)
 
-    :param profile:
+    :param profile_id:
     :return: Список problem_key для найденных генераторов
     """
-    profile_id = profile["id"]
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -438,10 +452,9 @@ def get_current_session(profile):
         return result[0] if result else None
 
 
-def delete_current_session(profile):
-    if profile is None:
+def delete_current_session(profile_id):
+    if profile_id is None:
         return {}
-    profile_id = profile["id"]
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -726,11 +739,10 @@ def update_history(profile_id, session_uuid, users_answer, is_correct, is_timeou
         conn.commit()
 
 
-def update_mistakes(profile, session_uuid, is_correct):
+def update_mistakes(profile_id, session_uuid, is_correct):
     """
     Отправить задачу в историю
     """
-    profile_id = profile["id"]
     problem_key, _, question, correct_answer, _ = get_question(session_uuid)
     if not problem_key:
         return

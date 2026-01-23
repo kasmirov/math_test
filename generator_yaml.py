@@ -20,7 +20,7 @@ class YamlProblemGenerator(ProblemGenerator):
             data = yaml.safe_load(f)
             return data['title'], data['tags'], data['problems'], len(data['problems'])
 
-    def generate_problem(self):
+    def generate_problem(self, limits=None):
         """Выбор случайной задачи"""
         if not self.get_problems_number():
             return None
@@ -29,7 +29,7 @@ class YamlProblemGenerator(ProblemGenerator):
         answer = self.tasks[idx]['answer']
         return problem, answer
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return f"{self.title}"
 
     def get_key(self):

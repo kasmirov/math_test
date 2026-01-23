@@ -4,14 +4,8 @@ from core import explore_static_generators, get_generator, get_generators, gener
 from db_func import get_users, get_user_profiles, create_profile, get_statistics, get_history, get_solved_problems, \
     create_session, delete_current_session, get_mistakes, delete_profile
 from core import run_test
-
-
+from limits import default_limits, deep_merge
 from menu_manager import MenuManager, Action
-
-
-# TODO Сделать limit-ы зависящими от класса задания,
-#  но так чтобы их можно было бы переопределить лимитами юзера, если они заданы
-#  причем не обязаны быть заданы все, а возможно некоторые из параметров
 
 
 '''
@@ -28,12 +22,13 @@ from menu_manager import MenuManager, Action
 
 def work_on_mistakes(profile):
     """Режим работы над ошибками"""
+    profile_id = profile['id']
 
     # Delete existing session
-    delete_current_session(profile)
+    delete_current_session(profile_id)
 
     # Create_new_session
-    session_uuid = create_session(profile['id'])
+    session_uuid = create_session(profile_id)
 
     # Max number of questions in section
     num_of_questions = 10
@@ -41,9 +36,9 @@ def work_on_mistakes(profile):
     print("\n--- Работа над ошибками ---")
 
     # Print mistakes in every section
-    problems = get_solved_problems(profile)
+    problems = get_solved_problems(profile_id)
     for problem_key in problems:
-        mistakes = get_mistakes(profile, problem_key)
+        mistakes = get_mistakes(profile_id, problem_key)
         if not mistakes:
             #print("У вас пока нет ошибок для работы!")
             continue
@@ -54,10 +49,11 @@ def work_on_mistakes(profile):
     selected_sections = get_generators().values()
 
     # Prepare questions for new session
-    generate_test_plan(profile['id'],
+    generate_test_plan(profile_id,
                        session_uuid,
                        selected_sections,
                        num_of_questions,
+                       profile["settings"]["limits"],
                        work_on_mistakes=True)
 
     # Создаем корутину
@@ -116,12 +112,14 @@ def display_profile_stats(profile):
     # TODO Rework needed
     print("\n\nИстория тестирования:")
     # История тестов
-    for problem_key in get_solved_problems(profile):
+    for problem_key in get_solved_problems(profile["id"]):
         # Фильтруем вопросы с ошибками
         history = get_history(profile["id"], problem_key, is_correct=False)
         if history:
             print("-" * 60)
             gen = get_generator(problem_key)
+            if not gen:
+                continue
             section_name = gen.get_section_name()
             print(f"  Раздел: {section_name}")
             for i, test in enumerate(reversed(history), 1):
@@ -198,9 +196,18 @@ class MathTestApp:
 
             if action.type == "select_profile":
                 self.current_profile = profiles[action.params["user_index"]]
-                self.current_profile["settings"] = json.loads(self.current_profile["settings"]) # TODO merge and validate limits
+                try:
+                    profile_settings = json.loads(self.current_profile.get("settings", "{}")) # TODO Validate!
+                    profile_limits = profile_settings.get("limits", dict())
+                except json.decoder.JSONDecodeError as e:
+                    profile_limits = {}
+
+                def_limits = default_limits()
+                merged_limits = deep_merge(def_limits, profile_limits)
+                self.current_profile["settings"] = dict()
+                self.current_profile["settings"]["limits"] = merged_limits
                 self.menu.current_profile_name = self.current_profile["name"]
-                explore_static_generators(self.current_profile["settings"]["limits"], has_text_mode=True)
+                explore_static_generators(has_text_mode=True)
                 break
 
             elif action.type == "create_profile":
@@ -242,7 +249,7 @@ class MathTestApp:
         # Получение списка разделов для меню
         sections = []
         for gen in get_generators().values():
-            sections.append((gen.get_section_name(), gen.default_timeout))
+            sections.append((gen.get_section_name(self.current_profile["settings"]["limits"]), gen.default_timeout))
 
         # Показ меню выбора разделов с возможностью вернуться
         selected_indices = self.menu.show_section_selection(sections)
@@ -265,7 +272,7 @@ class MathTestApp:
         timeout = self.menu.prompt_timeout(selected_sections[0].default_timeout)
 
         # Delete existing session
-        delete_current_session(self.current_profile)
+        delete_current_session(self.current_profile['id'])
 
         # Create_new_session
         session_uuid = create_session(self.current_profile['id'])
@@ -275,6 +282,7 @@ class MathTestApp:
                            session_uuid,
                            selected_sections,
                            num_of_questions,
+                           self.current_profile["settings"]["limits"],
                            timeout)
 
         # Test cycle

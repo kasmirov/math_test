@@ -1280,7 +1280,7 @@ const accWidget = AccountWidget.getInstance({
         profiles = profilesList || [];
 
         //TODO ? Восстанавливаем выбранный профиль если он был
-        //loadLastProfile();
+        loadLastProfile();
         loadSettings();
         updateAppInfo();
 

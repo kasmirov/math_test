@@ -6,30 +6,29 @@ from generator_abstract import ProblemGenerator
 class FractionGenerator(ProblemGenerator):
     """Генератор задач на операции с дробными числами"""
 
-    def __init__(self, limits):
+    def __init__(self, latex=True):
         super().__init__(default_timeout=60)
-        self.limits = limits
         self.tags["grade"] = ["3 класс", "4 класс", "5 класс"]
         self.tags["subject"] = ["Математика"]
         self.tags["topic"] = ["Дроби", "Операции с дробными числами"]
         self.description = "Примеры с дробными числами"
 
         # Определяем уровень сложности из limits
-        self.complexity = self.limits.get("complexity", 1)  # 1 или 2
+        self.complexity = 1
 
-    def _generate_fraction(self):
+    def _generate_fraction(self, limits):
         """Генерирует дробь в соответствии с ограничениями"""
         # Определяем диапазоны для числителя и знаменателя
-        min_num = self.limits.get("numerator", {}).get("min", 1)
-        max_num = self.limits.get("numerator", {}).get("max", 10)
-        min_denom = self.limits.get("denominator", {}).get("min", 2)
-        max_denom = self.limits.get("denominator", {}).get("max", 12)
+        min_num = limits.get("numerator", {}).get("min", 1)
+        max_num = limits.get("numerator", {}).get("max", 10)
+        min_denom = limits.get("denominator", {}).get("min", 2)
+        max_denom = limits.get("denominator", {}).get("max", 12)
 
         numerator = random.randint(min_num, max_num)
         denominator = random.randint(min_denom, max_denom)
 
         # Убедимся, что дробь правильная (не смешанная) если нужно
-        if self.limits.get("proper_only", True) and numerator >= denominator:
+        if limits.get("proper_only", True) and numerator >= denominator:
             numerator = random.randint(min_num, denominator - 1) if denominator > min_num else 1
 
         # Сокращаем дробь
@@ -50,7 +49,7 @@ class FractionGenerator(ProblemGenerator):
 
         if denominator < 0:
             numerator = -numerator
-            denominator = -denomimator
+            denominator = -denominator
 
         gcd_val = math.gcd(abs(numerator), denominator)
         numerator //= gcd_val
@@ -140,12 +139,12 @@ class FractionGenerator(ProblemGenerator):
 
         return result_num, result_denom
 
-    def _check_result_value(self, result_str):
+    def _check_result_value(self, result_str, limits):
         """Проверяет, находится ли результат в заданных пределах"""
-        if not self.limits.get("result"):
+        if not limits.get("result"):
             return True
 
-        result_limits = self.limits["result"]
+        result_limits = limits["result"]
         min_val = result_limits.get("min", 0)
         max_val = result_limits.get("max", 10)
 
@@ -168,7 +167,7 @@ class FractionGenerator(ProblemGenerator):
         except (ValueError, ZeroDivisionError):
             return True
 
-    def generate_problem(self):
+    def generate_problem(self, limits):
         """Генерирует задачу с дробями и возвращает (текст_задачи, правильный_ответ)"""
         max_attempts = 100  # Максимальное количество попыток
         for attempt in range(max_attempts):
@@ -177,8 +176,8 @@ class FractionGenerator(ProblemGenerator):
 
             if use_integer:
                 # Генерируем дробь и целое число
-                fraction = self._generate_fraction()
-                integer = random.randint(1, self.limits.get("integer_max", 5))
+                fraction = self._generate_fraction(limits)
+                integer = random.randint(1, limits.get("integer_max", 5))
 
                 # Выбираем операцию
                 operation = random.choice(["+", "-", "×", "÷"])
@@ -195,7 +194,7 @@ class FractionGenerator(ProblemGenerator):
                     continue  # Не подходит для уровня сложности
 
                 # Проверяем ограничения по результату
-                if not self._check_result_value(result_str):
+                if not self._check_result_value(result_str, limits):
                     continue
 
                 # Создаем выражение в LaTeX
@@ -205,8 +204,8 @@ class FractionGenerator(ProblemGenerator):
 
             else:
                 # Генерируем две дроби
-                fraction1 = self._generate_fraction()
-                fraction2 = self._generate_fraction()
+                fraction1 = self._generate_fraction(limits)
+                fraction2 = self._generate_fraction(limits)
 
                 # Выбираем операцию
                 operation = random.choice(["+", "-", "×", "÷"])
@@ -223,7 +222,7 @@ class FractionGenerator(ProblemGenerator):
                     continue  # Не подходит для уровня сложности
 
                 # Проверяем ограничения по результату
-                if not self._check_result_value(result_str):
+                if not self._check_result_value(result_str, limits):
                     continue
 
                 # Создаем выражение в LaTeX
@@ -237,18 +236,13 @@ class FractionGenerator(ProblemGenerator):
         default_answer = "1"
         return f"${default_expr}$", default_answer
 
-    def get_section_name(self):
-        min_denom = self.limits.get("denominator", {}).get("min", 2)
-        max_denom = self.limits.get("denominator", {}).get("max", 12)
-        complexity_text = "1 уровень" if self.complexity == 1 else "2 уровень"
-
-        # Получаем ограничения для результата
-        if "result" in self.limits:
-            result_min = self.limits["result"].get("min", "")
-            result_max = self.limits["result"].get("max", "")
-            return f"Дроби ({min_denom}-{max_denom}), результат {result_min}-{result_max} - {complexity_text}"
-        else:
-            return f"Дроби ({min_denom}-{max_denom}) - {complexity_text}"
+    def get_section_name(self, limits=None):
+        if limits:
+            min_denom = limits.get("denominator", {}).get("min", 2)
+            max_denom = limits.get("denominator", {}).get("max", 12)
+            complexity_text = "1 уровень" if self.complexity == 1 else "2 уровень"
+            return f"Арифметические операции с дробями ({min_denom}-{max_denom}), {complexity_text}"
+        return f"Арифметические операции с дробями"
 
     def get_key(self):
         return f"fractions_level_{self.complexity}"

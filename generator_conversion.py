@@ -8,14 +8,13 @@ from units import Length, Weight, Volume
 class ConversionGenerator(ProblemGenerator):
     """Генератор задач на конвертацию величин"""
 
-    def __init__(self, limits):
+    def __init__(self):
         super().__init__(default_timeout=120)
-        self.limits = limits
         self.tags["grade"] = ["2 класс", "3 класс"]
         self.tags["subject"] = ["Математика"]
         self.tags["topic"] = ["Конвертация величин"]
 
-    def generate_problem(self):
+    def generate_problem(self, limits=None):
         # Выбираем тип величины + class
         unit_types = {
             'длина': Length,
@@ -54,7 +53,7 @@ class ConversionGenerator(ProblemGenerator):
         problem = result_str + '= '
         return problem, result
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Конвертация величин"
 
     def get_key(self):

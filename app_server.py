@@ -22,7 +22,7 @@ from limits import default_limits
 from db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
-    get_statistics, get_user_profiles
+    get_statistics, get_user_profiles, get_profile_data, get_profile_limits
 from db_config import db_config
 from units import Units
 
@@ -84,6 +84,41 @@ def validate_password(password):
     if not re.search(r'[a-zA-Z]', password):
         return False
     return True
+
+
+def optional_jwt_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            # Пытаемся верифицировать токен (без исключений при optional=True)
+            verify_jwt_in_request(optional=True)
+
+            # Получаем email пользователя (будет None если токен невалиден/отсутствует)
+            user_email = get_jwt_identity()
+
+            # Проверяем, валиден ли токен через наличие user_email
+            is_authenticated = user_email is not None
+
+            return fn(*args, **kwargs,
+                      is_authenticated=is_authenticated,
+                      user_email=user_email)
+
+        except Exception as e:
+            # Анонимный пользователь (без валидного токена)
+            return fn(*args, **kwargs,
+                      is_authenticated=False,
+                      user_email=None)
+
+    return wrapper
+
+def get_user_and_profile(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        return fn(*args, **kwargs,
+                  user_id=None,
+                  profile_id=None)
+    return wrapper
+
 
 # Эндпоинты аутентификации
 @app.route('/api/auth/register', methods=['POST'])
@@ -592,13 +627,19 @@ def clone_profile(profile_id):
 
 
 @app.route('/api/test/blocks', methods=['GET'])
-def get_test_blocks():
+@optional_jwt_required
+def get_test_blocks(is_authenticated=False, user_email=None):
     """Получить список блоков вопросов с возможностью фильтрации по тегам"""
     requested_tags = request.args.getlist('tags')
 
-    # TODO Get users profile limits if logged or default one
-    #explore_static_generators(default_limits())
-    question_blocks = get_question_blocks()
+    # Get credentials
+    if is_authenticated:
+        _, profile_id = get_creds_from_email(user_email)
+    else:
+        profile_id = get_anonymous_profile()
+    limits = get_profile_limits(profile_id)
+
+    question_blocks = get_question_blocks(limits)
     # Фильтруем блоки по тегам, если указаны
     if requested_tags:
         filtered_blocks = [
@@ -615,39 +656,6 @@ def get_test_blocks():
         "available_tags": all_tags
     })
 
-
-def optional_jwt_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        try:
-            # Пытаемся верифицировать токен (без исключений при optional=True)
-            verify_jwt_in_request(optional=True)
-
-            # Получаем email пользователя (будет None если токен невалиден/отсутствует)
-            user_email = get_jwt_identity()
-
-            # Проверяем, валиден ли токен через наличие user_email
-            is_authenticated = user_email is not None
-
-            return fn(*args, **kwargs,
-                      is_authenticated=is_authenticated,
-                      user_email=user_email)
-
-        except Exception as e:
-            # Анонимный пользователь (без валидного токена)
-            return fn(*args, **kwargs,
-                      is_authenticated=False,
-                      user_email=None)
-
-    return wrapper
-
-def get_user_and_profile(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        return fn(*args, **kwargs,
-                  user_id=None,
-                  profile_id=None)
-    return wrapper
 
 @optional_jwt_required
 def explore_generators(is_authenticated=False, user_email=None):
@@ -672,10 +680,8 @@ def create_new_session(is_authenticated=False, user_email=None):
         user_id = get_anonymous_user()
         profile_id = get_anonymous_profile()
 
-
-    # profile.setup.limits
-    #explore_static_generators(default_limits()) # Bad, has state
-    question_blocks = get_question_blocks()
+    limits = get_profile_limits(profile_id)
+    question_blocks = get_question_blocks(limits)
 
     # Проверяем, что все block_id существуют
     valid_block_ids = [block['id'] for block in question_blocks]
@@ -692,8 +698,9 @@ def create_new_session(is_authenticated=False, user_email=None):
     generate_test_plan(profile_id,
                        session_uuid,
                        selected_sections,
-                       num_of_questions=num_of_questions,
-                       timeout=timeout)
+                       num_of_questions,
+                       limits,
+                       timeout)
 
     return jsonify({
         "session_uuid": session_uuid,
@@ -704,8 +711,18 @@ def create_new_session(is_authenticated=False, user_email=None):
 
 
 @app.route('/api/test/session/<session_uuid>', methods=['GET'])
-def get_next_question(session_uuid):
+@optional_jwt_required
+def get_next_question(session_uuid, is_authenticated=False, user_email=None):
     """Получить следующий вопрос в сессии"""
+    # Get credentials
+    if is_authenticated:
+        user_id, profile_id = get_creds_from_email(user_email)
+    else:
+        user_id = get_anonymous_user()
+        profile_id = get_anonymous_profile()
+
+    limits = get_profile_limits(profile_id)
+
     # Get current question by session_uuid
     problem_key, question_index, question, correct_answer, timeout = get_question(session_uuid)
     if not problem_key:
@@ -724,7 +741,7 @@ def get_next_question(session_uuid):
     question_data = {
         "id": question_index,
         "block_id": problem_key,
-        "block_name": get_generator(problem_key).get_section_name(),
+        "block_name": get_generator(problem_key).get_section_name(limits),
         "block_hint": get_generator(problem_key).get_hint(),
         "text": question,
         "time_limit": timeout,
@@ -908,8 +925,8 @@ def get_stats():
     date_to = request.args.get('date_to')
     block_ids = request.args.getlist('block_id', type=int)
 
-    #explore_static_generators(default_limits()) # Bad, has state
-    question_blocks = get_question_blocks()
+    limits = get_profile_limits(profile_id)
+    question_blocks = get_question_blocks(limits)
 
     # Проверяем, что все block_id существуют
     valid_block_ids = [block['id'] for block in question_blocks]
@@ -933,12 +950,12 @@ def get_stats():
         if gen is None:
             continue
 
-        section_name = gen.get_section_name()
-        block_id = next(x['id'] for x in question_blocks if x['name'] == section_name)
+        section_key = gen.get_key()
+        block_id = next(x['id'] for x in question_blocks if x['section_key'] == section_key)
 
         stats.append({
             "block_id": block_id,
-            "block_name": section_name,
+            "block_name": gen.get_section_name(),
             "correct_answers": data['correct_answers'],
             "correct_timeout_answers": data['timeout_answers'],
             "total_answers": data['total_questions'],
@@ -1025,8 +1042,7 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 
 if __name__ == '__main__':
-    #TODO Remove from here
-    explore_static_generators(default_limits(), latex=True)
+    explore_static_generators(latex=True)
     # Инициализация базы данных при запуске
     init_db()
     app.run(host="0.0.0.0", debug=False, port=5000)

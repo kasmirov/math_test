@@ -114,31 +114,48 @@ def generate_expr(depth: int, limits):
     return problem, result
 
 
-
 class PriorityOperationsGenerator3rd(ProblemGenerator):
     """Генератор примеров с приоритетами операций 3 класс"""
 
-    def __init__(self, limits):
+    def __init__(self):
         super().__init__(default_timeout=90)
-        self.limits = limits
         self.tags["grade"] = ["3 класс"]
         self.tags["subject"] = ["Математика"]
         self.tags["topic"] = ["Приоритеты операций", "Сложение и вычитание", "Умножение", "Деление"]
 
 
-    def generate_problem(self):
-        problem, result = generate_expr(3, self.limits)
+    def generate_problem(self, limits):
+        problem, result = generate_expr(3, limits)
         return problem, result
 
-    def get_section_name(self):
+    def get_section_name(self, limits=None):
         return "Приоритеты операций, 3 класс"
 
     def get_key(self):
         return "priority_operations_3rd"
 
-    '''
-    operations = ['+', '-', '×', '÷']
-    expr = problem.replace('÷', '/')
-    expr = expr.replace('×', '*')
-    print(f"{expr} = {result}")
-    '''
+class PriorityOperationsGenerator4th(ProblemGenerator):
+    """Генератор примеров с приоритетами операций 3 класс"""
+
+    def __init__(self):
+        super().__init__(default_timeout=90)
+        self.tags["grade"] = ["4 класс"]
+        self.tags["subject"] = ["Математика"]
+        self.tags["topic"] = ["Приоритеты операций", "Сложение и вычитание", "Умножение", "Деление"]
+
+    def generate_problem(self, limits):
+        problem, result = generate_expr(5, limits)
+        return problem, result
+
+    def get_section_name(self, limits=None):
+        return "Приоритеты операций, 4 класс"
+
+    def get_key(self):
+        return "priority_operations_4rd"
+
+'''
+operations = ['+', '-', '×', '÷']
+expr = problem.replace('÷', '/')
+expr = expr.replace('×', '*')
+print(f"{expr} = {result}")
+'''
