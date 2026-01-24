@@ -650,10 +650,11 @@ def get_test_blocks(is_authenticated=False, user_email=None):
         filtered_blocks = question_blocks
 
     all_tags = list(set(tag for block in question_blocks for tag in block["tags"]))
+    sorted_tags = sorted(all_tags)
 
     return jsonify({
         "blocks": filtered_blocks,
-        "available_tags": all_tags
+        "available_tags": sorted_tags
     })
 
 

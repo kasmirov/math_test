@@ -493,8 +493,10 @@ def get_current_question_idx(session_uuid):
             WHERE session_uuid = ?
         ''', (session_uuid,))
 
-        current_index = cursor.fetchone()[0]
-        return current_index
+        current_index = cursor.fetchone()
+        if not current_index:
+            return None
+        return current_index[0]
 
 
 def increase_current_question_idx(session_uuid):

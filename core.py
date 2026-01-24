@@ -43,7 +43,7 @@ def explore_static_generators(latex=False, has_text_mode=None):
             YamlProblemGenerator("2nd_grade.yaml"),
             YamlProblemGenerator("3rd_grade.yaml"),
             GeometryFigurePropertiesGenerator(),
-            FractionGenerator(base_limits()),
+            FractionGenerator(),
             ClockGeneratorSimple(),
             ClockGeneratorHard()
         ] if has_text_mode is None or gen.has_text_mode() == has_text_mode

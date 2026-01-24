@@ -1,0 +1,94 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Math operations limits",
+    "description": "Schema for validating math operation limits",
+    "type": "object",
+    "required": ["sum", "mult", "div"],
+    "properties": {
+        "sum": {
+            "type": "object",
+            "required": ["add", "result"],
+            "properties": {
+                "add": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                },
+                "result": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "mult": {
+            "type": "object",
+            "required": ["factor", "result"],
+            "properties": {
+                "factor": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                },
+                "result": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "div": {
+            "type": "object",
+            "required": ["dividend", "divisor", "result"],
+            "properties": {
+                "dividend": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                },
+                "divisor": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                },
+                "result": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": -1000, "maximum": 1000},
+                        "max": {"type": "number", "minimum": -1000, "maximum": 1000}
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false
+}

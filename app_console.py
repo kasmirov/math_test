@@ -4,7 +4,7 @@ from core import explore_static_generators, get_generator, get_generators, gener
 from db_func import get_users, get_user_profiles, create_profile, get_statistics, get_history, get_solved_problems, \
     create_session, delete_current_session, get_mistakes, delete_profile
 from core import run_test
-from limits import default_limits, deep_merge
+from limits import default_limits, deep_merge, validate_limits
 from menu_manager import MenuManager, Action
 
 
@@ -204,6 +204,9 @@ class MathTestApp:
 
                 def_limits = default_limits()
                 merged_limits = deep_merge(def_limits, profile_limits)
+                valid, _ = validate_limits(merged_limits)
+                if not valid:
+                    merged_limits = default_limits()
                 self.current_profile["settings"] = dict()
                 self.current_profile["settings"]["limits"] = merged_limits
                 self.menu.current_profile_name = self.current_profile["name"]
