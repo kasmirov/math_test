@@ -535,7 +535,7 @@ class AccountPage {
                         </div>
                         <div class="json-editor-container">
                             <label class="json-editor-label">Настройки (JSON):</label>
-                            <textarea id="newProfileSettings" class="json-editor" placeholder='{"theme": "dark", "notifications": true}'>{"theme": "light", "notifications": true}</textarea>
+                            <textarea id="newProfileSettings" class="json-editor" placeholder='{"limits": {}}'>{"limits": {}}</textarea>
                             <div class="json-error" id="newProfileJsonError">Неверный формат JSON</div>
                         </div>
                     </div>
@@ -676,6 +676,7 @@ class AccountPage {
             const jsonError = document.getElementById('editProfileJsonError');
 
             let settings = {};
+            // Проверка json в settingsText на валидность
             if (settingsText) {
                 try {
                     settings = JSON.parse(settingsText);
