@@ -6,7 +6,7 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import List, Dict
 
-from limits import default_limits
+from limits import default_limits, validate_limits, deep_merge
 from db_config import db_config
 from units import Units
 
@@ -71,10 +71,20 @@ def get_profile_data(profile_id):
         profile = cursor.fetchone()
         return dict(profile)
 
-
+# TODO Rework needed
 def get_profile_limits(profile_id):
     settings = json.loads(get_profile_data(profile_id)["settings"])
-    return settings['limits']
+    try:
+        profile_limits = settings.get("limits", dict())
+    except json.decoder.JSONDecodeError as e:
+        profile_limits = {}
+
+    def_limits = default_limits()
+    merged_limits = deep_merge(def_limits, profile_limits)
+    valid, _ = validate_limits(merged_limits)
+    if not valid:
+        merged_limits = default_limits()
+    return merged_limits
 
 
 # desktop use only

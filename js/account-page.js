@@ -1,5 +1,151 @@
 // API базовый URL
 const API_BASE_URL = '/api';
+let currentTreeEditor = null;
+
+let validationMode = 'warning';
+
+// Схема по умолчанию
+const defaultSchema = {
+	"limits": {
+		"type": "object",
+		"children": ["sum", "mult", "div"],
+		"description": "Настройка пределов выражений в тестах"
+	},
+	"limits.sum": {
+		"type": "object",
+		"children": ["add", "result"],
+		"description": "Операция сложения"
+	},
+	"limits.sum.add": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры для сложения"
+	},
+	"limits.sum.add.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Минимальное значение для сложения"
+	},
+	"limits.sum.add.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Максимальное значение для сложения"
+	},
+	"limits.sum.result": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры результата сложения"
+	},
+	"sum.result.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Минимальное значение результата"
+	},
+	"limits.sum.result.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Максимальное значение результата"
+	},
+	"limits.mult": {
+		"type": "object",
+		"children": ["factor", "result"],
+		"description": "Операция умножения"
+	},
+	"limits.mult.factor": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры множителя"
+	},
+	"limits.mult.factor.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 100,
+		"description": "Минимальное значение множителя"
+	},
+	"limits.mult.factor.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 100,
+		"description": "Максимальное значение множителя"
+	},
+	"limits.mult.result": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры результата умножения"
+	},
+	"limits.mult.result.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Минимальное значение результата"
+	},
+	"limits.mult.result.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Максимальное значение результата"
+	},
+	"limits.div": {
+		"type": "object",
+		"children": ["dividend", "divisor", "result"],
+		"description": "Операция деления"
+	},
+	"limits.div.dividend": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры делимого"
+	},
+	"limits.div.dividend.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Минимальное значение делимого"
+	},
+	"limits.div.dividend.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Максимальное значение делимого"
+	},
+	"limits.div.divisor": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры делителя"
+	},
+	"limits.div.divisor.min": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Минимальное значение делителя"
+	},
+	"limits.div.divisor.max": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Максимальное значение делителя"
+	},
+	"limits.div.result": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры результата деления"
+	},
+	"limits.div.result.min": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Минимальное значение результата"
+	},
+	"limits.div.result.max": {
+		"type": "number",
+		"min": -1000,
+		"max": 1000,
+		"description": "Максимальное значение результата"
+	}
+};
 
 class AccountPage {
     constructor() {
@@ -514,7 +660,7 @@ class AccountPage {
     showNewProfileModal() {
         const modalHtml = `
             <div class="modal-overlay" id="newProfileModal">
-                <div class="modal">
+                <div class="modal" style="max-width: 800px;">
                     <div class="modal-header">
                         <h3 class="modal-title">Новый профиль</h3>
                         <button class="modal-close" id="closeNewProfileModal">&times;</button>
@@ -533,10 +679,14 @@ class AccountPage {
                                 <option value="other">Другой</option>
                             </select>
                         </div>
-                        <div class="json-editor-container">
-                            <label class="json-editor-label">Настройки (JSON):</label>
-                            <textarea id="newProfileSettings" class="json-editor" placeholder='{"limits": {}}'>{"limits": {}}</textarea>
-                            <div class="json-error" id="newProfileJsonError">Неверный формат JSON</div>
+                        <div class="form-group">
+                            <label class="json-editor-label">Настройки:</label>
+								<div class="tree-actions">
+									<button id="expandAllButton">Развернуть все</button>
+									<button id="collapseAllButton">Свернуть все</button>
+								</div>
+							<!-- Контейнер для виджета дерева -->
+                            <div id="newProfileTreeEditor"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -557,10 +707,43 @@ class AccountPage {
         const closeBtn = document.getElementById('closeNewProfileModal');
         const cancelBtn = document.getElementById('cancelNewProfileBtn');
         const saveBtn = document.getElementById('saveNewProfileBtn');
+        const expandAllBtn = document.getElementById('expandAllBtn');
+        const collapseAllBtn = document.getElementById('collapseAllBtn');
+			
+        let treeEditor = null;
+		let settings = null;
 
         const showModal = () => {
             setTimeout(() => {
                 modal.classList.add('active');
+
+                // Инициализируем древовидный редактор
+                const treeContainer = document.getElementById('newProfileTreeEditor');
+				if (treeEditor) {
+					treeEditor.destroy();
+				}
+				treeEditor = new TreeEditor({
+					container: treeContainer,
+					initialData: { limits: {} },
+					initialSchema: defaultSchema,
+					validationMode: validationMode,
+					onDataChange: function(data) {
+						settings = data;
+					},
+					onValidationChange: function(validation) {
+						//showAlert(validation.message, validation.type);
+					}
+				});
+
+                // Привязываем кнопки к редактору
+                //expandAllBtn.addEventListener('click', () => {
+                //    treeEditor.expandAll();
+                //});
+
+                //collapseAllBtn.addEventListener('click', () => {
+                //    treeEditor.collapseAll();
+                //});
+
                 document.getElementById('newProfileName').focus();
             }, 10);
         };
@@ -576,24 +759,12 @@ class AccountPage {
         saveBtn.addEventListener('click', async () => {
             const name = document.getElementById('newProfileName').value.trim();
             const type = document.getElementById('newProfileType').value;
-            const settingsText = document.getElementById('newProfileSettings').value.trim();
-            const jsonError = document.getElementById('newProfileJsonError');
 
             if (!name) {
                 this.showAlert('error', 'Название профиля обязательно', 'profileAlert');
                 return;
             }
 
-            let settings = {};
-            if (settingsText) {
-                try {
-                    settings = JSON.parse(settingsText);
-                    jsonError.classList.remove('active');
-                } catch (e) {
-                    jsonError.classList.add('active');
-                    return;
-                }
-            }
 
             saveBtn.disabled = true;
             saveBtn.textContent = 'Создание...';
@@ -625,16 +796,19 @@ class AccountPage {
 
         const modalHtml = `
             <div class="modal-overlay" id="editSettingsModal">
-                <div class="modal">
+                <div class="modal" style="max-width: 800px;">
                     <div class="modal-header">
                         <h3 class="modal-title">Настройки профиля "${profile.name}"</h3>
                         <button class="modal-close" id="closeEditSettingsModal">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="json-editor-container">
-                            <label class="json-editor-label">Настройки (JSON):</label>
-                            <textarea id="editProfileSettings" class="json-editor">${JSON.stringify(profile.settings || {}, null, 2)}</textarea>
-                            <div class="json-error" id="editProfileJsonError">Неверный формат JSON</div>
+                        <div class="form-group">
+                            <label class="json-editor-label">Настройки:</label>
+                            <div class="tree-actions">
+                                <button type="button" class="btn btn-sm btn-secondary" id="editExpandAllBtn">Развернуть все</button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="editCollapseAllBtn">Свернуть все</button>
+                            </div>
+                            <div id="editProfileTreeEditor" class="tree-editor-container"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -655,11 +829,28 @@ class AccountPage {
         const closeBtn = document.getElementById('closeEditSettingsModal');
         const cancelBtn = document.getElementById('cancelEditSettingsBtn');
         const saveBtn = document.getElementById('saveEditSettingsBtn');
+        const expandAllBtn = document.getElementById('editExpandAllBtn');
+        const collapseAllBtn = document.getElementById('editCollapseAllBtn');
+
+        let treeEditor = null;
 
         const showModal = () => {
             setTimeout(() => {
                 modal.classList.add('active');
-                document.getElementById('editProfileSettings').focus();
+
+                // Инициализируем древовидный редактор с текущими настройками
+                const treeContainer = document.getElementById('editProfileTreeEditor');
+                const settings = profile.settings || { limits: {} };
+                treeEditor = new TreeEditor(treeContainer, null, settings);
+
+                // Привязываем кнопки к редактору
+                expandAllBtn.addEventListener('click', () => {
+                    treeEditor.expandAll();
+                });
+
+                collapseAllBtn.addEventListener('click', () => {
+                    treeEditor.collapseAll();
+                });
             }, 10);
         };
 
@@ -672,20 +863,8 @@ class AccountPage {
         cancelBtn.addEventListener('click', hideModal);
 
         saveBtn.addEventListener('click', async () => {
-            const settingsText = document.getElementById('editProfileSettings').value.trim();
-            const jsonError = document.getElementById('editProfileJsonError');
-
-            let settings = {};
-            // Проверка json в settingsText на валидность
-            if (settingsText) {
-                try {
-                    settings = JSON.parse(settingsText);
-                    jsonError.classList.remove('active');
-                } catch (e) {
-                    jsonError.classList.add('active');
-                    return;
-                }
-            }
+            // Получаем данные из древовидного редактора
+            const settings = treeEditor ? treeEditor.getData() : {};
 
             saveBtn.disabled = true;
             saveBtn.textContent = 'Сохранение...';

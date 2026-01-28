@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройки аккаунта</title>
     <link rel="stylesheet" href="./css/style.css">
+	<link rel="stylesheet" href="./css/tree-editor.css">
     <style>
         /* Дополнительные стили для страницы аккаунта */
         .account-page {
@@ -259,6 +260,224 @@
         .profile-list::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        /* Стили древовидного редактора */
+        .tree-editor-container {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tree {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .tree-node {
+            margin: 2px 0;
+        }
+
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            background: #fff;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tree-node-header:hover {
+            background: #f5f5f5;
+        }
+
+        .toggle-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 6px;
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .tree-node-content {
+            margin-left: 24px;
+            padding-left: 10px;
+            border-left: 1px dashed #ddd;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .tree-node-content.collapsed {
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+            opacity: 0;
+            border-left-color: transparent;
+        }
+
+        .tree-node-content.expanded {
+            max-height: 5000px;
+            opacity: 1;
+        }
+
+        .key {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .value-input-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+            padding: 2px 0;
+            transition: all 0.3s;
+        }
+
+        .value-input-container.invalid {
+            border: 1px solid #f44336;
+            border-radius: 4px;
+            padding: 4px 8px;
+            background: #fff5f5;
+        }
+
+        .value-input-container .key {
+            min-width: 80px;
+        }
+
+        .value-input {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            width: 100px;
+            background: #fff;
+        }
+
+        .value-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .value-input.invalid {
+            border-color: #f44336;
+            background: #fff5f5;
+        }
+
+        .validation-message {
+            font-size: 11px;
+            margin-left: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .validation-error {
+            color: #f44336;
+        }
+
+        .value-input-container.invalid .validation-error {
+            opacity: 1;
+        }
+
+        .suggestion {
+            font-size: 11px;
+            color: #666;
+            margin-left: 5px;
+            font-style: italic;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .tree-actions {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tree-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Стили для контекстного меню редактора */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .context-menu-item.danger {
+            color: #dc2626;
+        }
+
+        .context-menu-item.danger:hover {
+            background: #fee2e2;
+        }
+
+        .context-menu-item.disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .context-menu-item.disabled:hover {
+            background: white;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 4px 0;
+        }
+
+        .context-menu-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -358,6 +577,7 @@
     </div>
 
     <script src="js/account-widget.js"></script>
+    <script src="js/tree-editor.js"></script>
     <script src="js/account-page.js"></script>
 </body>
 </html>
