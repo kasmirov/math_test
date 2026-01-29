@@ -1,6 +1,5 @@
 // API базовый URL
 const API_BASE_URL = '/api';
-let currentTreeEditor = null;
 
 let validationMode = 'warning';
 
@@ -38,7 +37,7 @@ const defaultSchema = {
 		"children": ["min", "max"],
 		"description": "Параметры результата сложения"
 	},
-	"sum.result.min": {
+	"limits.sum.result.min": {
 		"type": "number",
 		"min": -1000,
 		"max": 1000,
@@ -707,8 +706,8 @@ class AccountPage {
         const closeBtn = document.getElementById('closeNewProfileModal');
         const cancelBtn = document.getElementById('cancelNewProfileBtn');
         const saveBtn = document.getElementById('saveNewProfileBtn');
-        const expandAllBtn = document.getElementById('expandAllBtn');
-        const collapseAllBtn = document.getElementById('collapseAllBtn');
+        const expandAllBtn = document.getElementById('expandAllButton');
+        const collapseAllBtn = document.getElementById('collapseAllButton');
 			
         let treeEditor = null;
 		let settings = null;
@@ -735,14 +734,13 @@ class AccountPage {
 					}
 				});
 
-                // Привязываем кнопки к редактору
-                //expandAllBtn.addEventListener('click', () => {
-                //    treeEditor.expandAll();
-                //});
+                expandAllBtn.addEventListener('click', () => {
+                    treeEditor.expandAll();
+                });
 
-                //collapseAllBtn.addEventListener('click', () => {
-                //    treeEditor.collapseAll();
-                //});
+                collapseAllBtn.addEventListener('click', () => {
+                    treeEditor.collapseAll();
+                });
 
                 document.getElementById('newProfileName').focus();
             }, 10);
@@ -803,10 +801,9 @@ class AccountPage {
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label class="json-editor-label">Настройки:</label>
                             <div class="tree-actions">
-                                <button type="button" class="btn btn-sm btn-secondary" id="editExpandAllBtn">Развернуть все</button>
-                                <button type="button" class="btn btn-sm btn-secondary" id="editCollapseAllBtn">Свернуть все</button>
+                                <button id="editExpandAllBtn">Развернуть все</button>
+                                <button id="editCollapseAllBtn">Свернуть все</button>
                             </div>
                             <div id="editProfileTreeEditor" class="tree-editor-container"></div>
                         </div>
@@ -831,19 +828,32 @@ class AccountPage {
         const saveBtn = document.getElementById('saveEditSettingsBtn');
         const expandAllBtn = document.getElementById('editExpandAllBtn');
         const collapseAllBtn = document.getElementById('editCollapseAllBtn');
-
+		
         let treeEditor = null;
 
         const showModal = () => {
             setTimeout(() => {
                 modal.classList.add('active');
 
-                // Инициализируем древовидный редактор с текущими настройками
+                // Инициализируем древовидный редактор
+				const settings = profile.settings || { limits: {} };
                 const treeContainer = document.getElementById('editProfileTreeEditor');
-                const settings = profile.settings || { limits: {} };
-                treeEditor = new TreeEditor(treeContainer, null, settings);
+				if (treeEditor) {
+					treeEditor.destroy();
+				}
+				treeEditor = new TreeEditor({
+					container: treeContainer,
+					initialData: settings,
+					initialSchema: defaultSchema,
+					validationMode: validationMode,
+					onDataChange: function(data) {
+						settings = data;
+					},
+					onValidationChange: function(validation) {
+						//showAlert(validation.message, validation.type);
+					}
+				});
 
-                // Привязываем кнопки к редактору
                 expandAllBtn.addEventListener('click', () => {
                     treeEditor.expandAll();
                 });
@@ -851,6 +861,8 @@ class AccountPage {
                 collapseAllBtn.addEventListener('click', () => {
                     treeEditor.collapseAll();
                 });
+
+                document.getElementById('editSettingsModal').focus();
             }, 10);
         };
 
