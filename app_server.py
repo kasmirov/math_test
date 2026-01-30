@@ -626,7 +626,7 @@ def clone_profile(profile_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/test/blocks', methods=['GET'])
+@app.route('/api/test/blocks', methods=['GET', 'POST'])
 @optional_jwt_required
 def get_test_blocks(is_authenticated=False, user_email=None):
     """Получить список блоков вопросов с возможностью фильтрации по тегам"""
@@ -667,9 +667,10 @@ def explore_generators(is_authenticated=False, user_email=None):
 @optional_jwt_required
 def create_new_session(is_authenticated=False, user_email=None):
     """Создать новую сессию тестирования"""
-
     num_of_questions = request.args.get('num_of_questions', type=int)
     timeout = request.args.get('timeout', type=int)
+    data = request.get_json(silent=True) or {}
+    work_on_mistakes = data.get('work_on_mistakes')
     block_ids = request.args.getlist('block_id', type=int)
     if not block_ids:
         return jsonify({"error": "Не выбраны блоки вопросов"}), 400
@@ -701,13 +702,11 @@ def create_new_session(is_authenticated=False, user_email=None):
                        selected_sections,
                        num_of_questions,
                        limits,
-                       timeout)
+                       timeout,
+                       work_on_mistakes)
 
     return jsonify({
-        "session_uuid": session_uuid,
-        "user_id": user_id,               # redundant
-        "profile_id": profile_id,   # redundant
-        "blocks": block_ids,        # redundant
+        "session_uuid": session_uuid
     })
 
 
@@ -956,7 +955,7 @@ def get_stats():
 
         stats.append({
             "block_id": block_id,
-            "block_name": gen.get_section_name(),
+            "block_name": gen.get_section_name(limits),
             "correct_answers": data['correct_answers'],
             "correct_timeout_answers": data['timeout_answers'],
             "total_answers": data['total_questions'],

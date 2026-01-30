@@ -185,28 +185,19 @@ function setupStatsFilters() {
 	// Добавляем обработчики изменений
 	document.getElementById('dateFrom').addEventListener('change', function() {
 		if (statsScreen.style.display === 'block') {
-			// TODO
-			// const isForErrors = statsTitle.textContent === 'Работа над ошибками';
-			const isForErrors = false;
-			loadStatistics(isForErrors);
+			loadStatistics();
 		}
 	});
 
 	document.getElementById('dateTo').addEventListener('change', function() {
 		if (statsScreen.style.display === 'block') {
-			// TODO
-			// const isForErrors = statsTitle.textContent === 'Работа над ошибками';
-			const isForErrors = false;
-			loadStatistics(isForErrors);
+			loadStatistics();
 		}
 	});
 
 	document.getElementById('blockFilter').addEventListener('change', function() {
 		if (statsScreen.style.display === 'block') {
-			// TODO
-			// const isForErrors = statsTitle.textContent === 'Работа над ошибками';
-			const isForErrors = false;
-			loadStatistics(isForErrors);
+			loadStatistics();
 		}
 	});
 }
@@ -387,9 +378,6 @@ async function showStatsScreen() {
 	// Обновляем заголовок страницы
 	pageTitle.textContent = 'Статистика';
 
-	// statsTitle.textContent = 'Статистика';
-	// statsSubtitle.textContent = 'Просмотр результатов';
-
 	// Если блоки еще не загружены, загружаем их перед отображением статистики
 	if (!blocksLoaded) {
 		await loadBlocks();
@@ -415,15 +403,12 @@ async function showStatsScreenForErrors() {
 	// Обновляем заголовок страницы
 	pageTitle.textContent = 'Работа над ошибками';
 
-	// statsTitle.textContent = 'Работа над ошибками';
-	// statsSubtitle.textContent = 'Анализ неправильных ответов';
-
 	// Если блоки еще не загружены, загружаем их перед отображением статистики
 	if (!blocksLoaded) {
 		await loadBlocks();
 	}
 
-	loadStatistics(true);
+	loadStatistics();
 }
 
 async function loadBlocks() {
@@ -435,7 +420,16 @@ async function loadBlocks() {
 	blocksList.innerHTML = '<div class="loading">Загрузка блоков вопросов...</div>';
 
 	try {
-		const response = await fetch(`${API_BASE_URL}/test/blocks`);
+		//const response = await fetch(`${API_BASE_URL}/test/blocks`);
+		const response = await fetch(`${API_BASE_URL}/test/blocks`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				profile_id: currentProfile && currentProfile.id ? currentProfile.id : null
+			})
+		});
 		if (!response.ok) {
 			throw new Error(`Ошибка загрузки: ${response.status}`);
 		}
@@ -617,7 +611,8 @@ async function startNewTest() {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-                profile_id: currentProfile && currentProfile.id ? currentProfile.id : null
+                profile_id: currentProfile && currentProfile.id ? currentProfile.id : null,
+                work_on_mistakes: false
 			})
 		});
 
@@ -983,7 +978,7 @@ function showTestCompletion(results = null) {
 	clearSession();
 }
 
-async function loadStatistics(forErrors = false) {
+async function loadStatistics() {
 	statsResults.innerHTML = '<div class="loading">Загрузка статистики...</div>';
 
 	try {
@@ -1005,20 +1000,14 @@ async function loadStatistics(forErrors = false) {
 			body: JSON.stringify({
 				profile_id: currentProfile && currentProfile.id ? currentProfile.id : null
 			})
-			});
+		});
 
 		if (!response.ok) {
 			throw new Error(`Ошибка загрузки статистики: ${response.status}`);
 		}
 
 		const stats = await response.json();
-
-		let filteredStats = stats;
-		if (forErrors) {
-			filteredStats = stats.filter(stat => stat.percentage < 100);
-		}
-
-		renderStatistics(filteredStats);
+		renderStatistics(stats);
 	} catch (error) {
 		console.error('Ошибка при загрузке статистики:', error);
 		statsResults.innerHTML = `
@@ -1165,15 +1154,6 @@ function hideSessionNotification() {
 
 // Функция для обновления информации в приложении
 function updateAppInfo() {
-/*
-    const user = accountWidget ? accountWidget.getUser() : null;
-    const profile = accountWidget ? accountWidget.getCurrentProfile() : null;
-    const profilesList = accountWidget ? accountWidget.getProfiles() : [];
-
-    document.getElementById('currentUser').textContent = user ? user.username : 'Не авторизован';
-    document.getElementById('currentProfile').textContent = profile ? `${profile.name} (${profile.type})` : 'Не выбран';
-    document.getElementById('profilesCount').textContent = profilesList.length;
-*/
     console.log('updateAppInfo Информация приложения обновлена');
 }
 
@@ -1228,6 +1208,7 @@ const accWidget = AccountWidget.getInstance({
         if (currentProfile) {
             accountWidget.currentProfile = currentProfile;
             accountWidget.updateProfilesDisplay();
+            loadBlocks();
         }
     },
 
@@ -1237,12 +1218,14 @@ const accWidget = AccountWidget.getInstance({
         currentProfile = null;
         profiles = [];
         updateAppInfo();
+        loadBlocks();
     },
 
     onAccountUpdate: (user) => {
         console.log('Данные пользователя обновлены:', user);
         currentUser = user;
         updateAppInfo();
+        loadBlocks();
     },
 
     onProfileClick: (profile) => {
@@ -1260,6 +1243,9 @@ const accWidget = AccountWidget.getInstance({
         storeProfile();
 
         updateAppInfo();
+
+        // Загружаем блоки для выбранного профиля
+        loadBlocks();
 
         // Если перешли в другой профиль надо чекнуть сессию
         checkActiveSession();
@@ -1279,10 +1265,10 @@ const accWidget = AccountWidget.getInstance({
         currentUser = user;
         profiles = profilesList || [];
 
-        //TODO ? Восстанавливаем выбранный профиль если он был
         loadLastProfile();
         loadSettings();
         updateAppInfo();
+        loadBlocks();
 
         // Применяем настройки профиля
         applyProfileSettings(currentProfile.settings);

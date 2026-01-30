@@ -13,6 +13,7 @@ class MultiplicationGenerator(ProblemGenerator):
 
     def generate_problem(self, limits):
         a, b, result = generate_operators("×", limits)
+        b = f"({b})" if b < 0 else b
         if self.latex:
             return f"${a} \\times {b} = $", result
         return f"{a} × {b} = ", result

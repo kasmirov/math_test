@@ -16,6 +16,7 @@ class AdditionSubtractionGenerator(ProblemGenerator):
     def generate_problem(self, limits):
         op = random.choice(["+", "-"])
         a, b, result = generate_operators(op, limits)
+        b = f"({b})" if b < 0 else b
         if self.latex:
             return f"${a} {op} {b} = $", result
         return f"{a} {op} {b} = ", result
@@ -24,7 +25,7 @@ class AdditionSubtractionGenerator(ProblemGenerator):
         if limits:
             a = limits["sum"]["add"]["min"]
             b = limits["sum"]["add"]["max"]
-            return f"Сложение и вычитание в пределах {a}-{b}"
+            return f"Сложение и вычитание в пределах {a}...{b}"
         return f"Сложение и вычитание"
 
     def get_key(self):
