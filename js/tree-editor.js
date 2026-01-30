@@ -196,7 +196,7 @@ class TreeEditor {
                     html += `
                         <div class="tree-node" data-path="${nodePath}">
                             <div class="${headerClass}"
-                                 style="padding-left: ${depth * 20 + 10}px;">
+                                 style="padding-left: 0px;">
                                 <div class="toggle-icon">
                                     ${isExpanded ? '▼' : '▶'}
                                 </div>
@@ -241,7 +241,7 @@ class TreeEditor {
                     html += `
                         <div class="tree-node" data-path="${nodePath}">
                             <div class="${containerClass}"
-                                 style="padding-left: ${depth * 20 + 36}px;">
+                                 style="padding-left: 0px;">
                                 <span class="key">${key}:</span>
                                 <input type="number"
                                        class="${inputClass}"

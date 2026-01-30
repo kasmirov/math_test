@@ -14,13 +14,13 @@
 }
 
 .tree-node {
-    margin: 2px 0;
+    padding: 2px 16px;
 }
 
 .tree-node-header {
     display: flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 2px 16px;
     background: #fff;
     border: 1px solid transparent;
     border-radius: 4px;
