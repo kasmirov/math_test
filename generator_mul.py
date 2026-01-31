@@ -22,7 +22,7 @@ class MultiplicationGenerator(ProblemGenerator):
         if limits:
             a = limits["mult"]["factor"]["min"]
             b = limits["mult"]["factor"]["max"]
-            return f"Умножение в пределах {a}-{b}"
+            return f"Умножение в пределах {a}...{b}"
         return f"Умножение"
 
     def get_key(self):

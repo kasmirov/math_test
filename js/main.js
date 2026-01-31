@@ -45,6 +45,7 @@ const backFromStatsBtn = document.getElementById('backFromStatsBtn');
 const filtersContainer = document.getElementById('filtersContainer');
 const filtersList = document.getElementById('filtersList');
 const blocksList = document.getElementById('blocksList');
+const errorsBlocksList = document.getElementById('errorsBlocksList');
 const answersHistoryContainer = document.getElementById('answersHistory');
 const questionText = document.getElementById('questionText');
 const questionHint = document.getElementById('questionHint');
@@ -284,6 +285,8 @@ function showMainScreen() {
 function showBlocksScreen() {
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'block';
+    blocksList.style.display = 'grid';
+    errorsBlocksList.style.display = 'none';
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'none';
 	filtersContainer.style.display = 'block';
@@ -328,6 +331,8 @@ async function showWorkOnErrorsScreen() {
 
     mainScreen.style.display = 'none';
     blocksScreen.style.display = 'block';
+    blocksList.style.display = 'none';
+    errorsBlocksList.style.display = 'grid';
     testScreen.style.display = 'none';
     statsScreen.style.display = 'none';
     filtersContainer.style.display = 'none';
@@ -341,6 +346,9 @@ async function showWorkOnErrorsScreen() {
 	// Обработчики кнопок
 	backFromBlocksBtn.addEventListener('click', showMainScreen);
 	startTestBtn.addEventListener('click', startRework);
+
+	// Показываем кнопку "В начало"
+	homeBtn.style.display = 'flex';
 
 	// Название кнопки
 	startTestBtn.textContent = 'Начать работу';
@@ -370,6 +378,8 @@ function syncSelectedBlocksFromUI() {
 function showTestScreen() {
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'none';
+	blocksList.style.display = 'none';
+    errorsBlocksList.style.display = 'none';
 	testScreen.style.display = 'block';
 	statsScreen.style.display = 'none';
 
@@ -394,6 +404,8 @@ async function showStatsScreen() {
 
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'none';
+	blocksList.style.display = 'none';
+    errorsBlocksList.style.display = 'none';
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'block';
 
@@ -411,6 +423,7 @@ async function showStatsScreen() {
 	loadStatistics();
 }
 
+// TODO KILLME
 async function showStatsScreenForErrors() {
 	if (!currentUser) {
 		alert('Пожалуйста, выберите пользователя для работы над ошибками');
@@ -587,7 +600,7 @@ function toggleBlockSelection(blockId) {
 }
 
 async function loadErrorBlocks() {
-    blocksList.innerHTML = '<div class="loading">Загрузка блоков с ошибками...</div>';
+    errorsBlocksList.innerHTML = '<div class="loading">Загрузка блоков с ошибками...</div>';
 
     try {
         const response = await fetch(`${API_BASE_URL}/stats/unsolved`, {
@@ -610,7 +623,7 @@ async function loadErrorBlocks() {
 
     } catch (error) {
         console.error('Ошибка при загрузке блоков с ошибками:', error);
-        blocksList.innerHTML = `
+        errorsBlocksList.innerHTML = `
             <div class="error-message">
                 ${error.message}
             </div>
@@ -619,13 +632,13 @@ async function loadErrorBlocks() {
 }
 
 function renderErrorBlocks(blocks) {
-    blocksList.innerHTML = '';
+    errorsBlocksList.innerHTML = '';
 
     if (!blocks || blocks.length === 0) {
-        const noBlocksMessage = document.createElement('div');
-        noBlocksMessage.className = 'no-blocks-message';
-        noBlocksMessage.textContent = 'У вас нет ошибок для работы';
-        blocksList.appendChild(noBlocksMessage);
+        const noErrorsBlocksMessage = document.createElement('div');
+        noErrorsBlocksMessage.className = 'no-blocks-message';
+        noErrorsBlocksMessage.textContent = 'У вас нет ошибок для работы';
+        errorsBlocksList.appendChild(noErrorsBlocksMessage);
         return;
     }
 
@@ -648,7 +661,7 @@ function renderErrorBlocks(blocks) {
             toggleErrorBlockSelection(block.id);
         });
 
-        blocksList.appendChild(blockCard);
+        errorsBlocksList.appendChild(blockCard);
     });
 }
 
@@ -691,6 +704,8 @@ async function startTest(rework=false) {
 
 	// Показываем экран теста и настраиваем начальное состояние
 	blocksScreen.style.display = 'none';
+	blocksList.style.display = 'none';
+    errorsBlocksList.style.display = 'none';
 	testScreen.style.display = 'block';
 
 	// Сбрасываем состояние

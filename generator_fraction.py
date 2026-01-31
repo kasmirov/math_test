@@ -241,7 +241,7 @@ class FractionGenerator(ProblemGenerator):
             min_denom = limits.get("denominator", {}).get("min", 2)
             max_denom = limits.get("denominator", {}).get("max", 12)
             complexity_text = "1 уровень" if self.complexity == 1 else "2 уровень"
-            return f"Арифметические операции с дробями ({min_denom}-{max_denom}), {complexity_text}"
+            return f"Арифметические операции с дробями {min_denom}...{max_denom}, {complexity_text}"
         return f"Арифметические операции с дробями"
 
     def get_key(self):

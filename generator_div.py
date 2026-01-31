@@ -24,7 +24,7 @@ class DivisionGenerator(ProblemGenerator):
         if limits:
             a = limits["div"]["divisor"]["min"]
             b = limits["div"]["divisor"]["max"]
-            return f"Деление без остатка {a}-{b}"
+            return f"Деление без остатка {a}...{b}"
         return f"Деление без остатка"
 
     def get_key(self):
