@@ -71,7 +71,7 @@ def get_profile_data(profile_id):
         profile = cursor.fetchone()
         return dict(profile)
 
-# TODO Rework needed
+
 def get_profile_limits(profile_id):
     settings = json.loads(get_profile_data(profile_id)["settings"])
     try:
@@ -127,8 +127,7 @@ def delete_profile(profile):
 
 def get_solved_problems(profile_id):
     """
-    Получить список решаемых ранее генераторов задач (разделов)
-
+    Получить список решаемых ранее генераторов задач (разделов) с любым результатом
     :param profile_id:
     :return: Список problem_key для найденных генераторов
     """
@@ -141,6 +140,24 @@ def get_solved_problems(profile_id):
              ORDER BY problem_key
          ''', (profile_id,))
         return [row['problem_key'] for row in cursor.fetchall()]
+
+
+def get_unsolved_problems(profile_id):
+    """
+    Получить список генераторов задач (разделов) которые были решены с ошибками
+    :param profile_id:
+    :return: Список problem_key для найденных генераторов
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT problem_key,  COUNT(*) AS count
+            FROM mistakes 
+            WHERE profile_id = ?
+            GROUP BY problem_key
+            ORDER BY problem_key
+         ''', (profile_id,))
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_statistics(profile_id: int = None, problem_keys: List[str] = None,
@@ -297,8 +314,8 @@ def get_history(profile_id,
     Получить историю задач для указанного problem_key
 
     Args:
-        profile: Профиль
-        problem_key: problem_key для фильтрации
+        profile_id: Profile Id
+        problem_key: ключ генератора задачи для фильтрации
         date_start: начальная дата периода (если None - с начала)
         date_end: конечная дата периода (если None - до конца)
         num_sessions: количество последних сессий для анализа (если None - все сессии)
@@ -400,6 +417,39 @@ def get_history(profile_id,
         return history_data
 
 
+def get_mistakes(profile_id, problem_key) -> List[Dict]:
+    """
+    Получить список нерешенных задач для указанного problem_key
+    Returns:
+        Список словарей с историей задач, отсортированный по session_id и question_index
+    """
+    # Return empty list for anonymous user
+    if not profile_id:
+        return []
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # Базовый запрос
+        cursor.execute("""
+            SELECT 
+                question,
+                correct_answer
+            FROM mistakes
+            WHERE profile_id = ? AND problem_key = ?
+        """, (
+            profile_id, problem_key
+        ))
+        rows = cursor.fetchall()
+        mistakes_data = []
+        for row in rows:
+            mistakes_data.append({
+                'question': row['question'],
+                'correct_answer': deserialize_answer(row['correct_answer'])
+            })
+        return mistakes_data
+
+
 def get_anonymous_user():
     return get_user_id_by_email(ANONYMOUS)
 
@@ -413,26 +463,11 @@ def get_anonymous_profile():
 def create_session(profile_id):
     """
     Create new session
-    :param profile_id: Profile Id, if none specified, using anonymous
-    :return:
+    :param profile_id: Profile Id
+    :return: session_uuid
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-
-        if profile_id:
-            # Проверяем существующую сессию если указан профиль
-            cursor.execute('''
-                SELECT session_uuid FROM sessions 
-                WHERE profile_id = ?
-            ''', (profile_id,))
-
-            existing = cursor.fetchone()
-            #if existing:
-            #    conn.close()
-            #    return existing[0]
-        else:
-            # profile_id not provided, need to specify anonymous user
-            profile_id = get_anonymous_profile()
 
         # Создаем новую сессию
         session_uuid = random.randint(1, 2 ** 32 - 1)  # Генерируем случайный UUID
@@ -525,6 +560,7 @@ def increase_current_question_idx(session_uuid):
 
         return new_index
 
+
 def get_questions_number(session_uuid):
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -594,6 +630,7 @@ def deserialize_answer(answer):
     except JSONDecodeError as e:
         pass
     return answer
+
 
 def get_question(session_uuid):
     question_index = get_current_question_idx(session_uuid)
@@ -753,7 +790,7 @@ def update_history(profile_id, session_uuid, users_answer, is_correct, is_timeou
 
 def update_mistakes(profile_id, session_uuid, is_correct):
     """
-    Отправить задачу в историю
+    Обновить статус задачи в истории ошибок
     """
     problem_key, _, question, correct_answer, _ = get_question(session_uuid)
     if not problem_key:
@@ -815,36 +852,3 @@ def update_mistakes(profile_id, session_uuid, is_correct):
             correct_answer
         ))
         conn.commit()
-
-
-def get_mistakes(profile_id, problem_key) -> List[Dict]:
-    """
-    Получить список нерешенных задач для указанного problem_key
-    Returns:
-        Список словарей с историей задач, отсортированный по session_id и question_index
-    """
-    # Return empty list for anonymous user
-    if not profile_id:
-        return []
-
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-
-        # Базовый запрос
-        cursor.execute("""
-            SELECT 
-                question,
-                correct_answer
-            FROM mistakes
-            WHERE profile_id = ? AND problem_key = ?
-        """, (
-            profile_id, problem_key
-        ))
-        rows = cursor.fetchall()
-        mistakes_data = []
-        for row in rows:
-            mistakes_data.append({
-                'question': row['question'],
-                'correct_answer': deserialize_answer(row['correct_answer'])
-            })
-        return mistakes_data

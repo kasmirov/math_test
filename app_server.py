@@ -22,7 +22,7 @@ from limits import default_limits
 from db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
-    get_statistics, get_user_profiles, get_profile_data, get_profile_limits
+    get_statistics, get_user_profiles, get_profile_data, get_profile_limits, get_unsolved_problems
 from db_config import db_config
 from units import Units
 
@@ -964,6 +964,25 @@ def get_stats():
 
     return jsonify(stats)
 
+@app.route('/api/stats/unsolved', methods=['POST'])
+@jwt_required()
+def get_unsolved():
+    """Получить статистику пользователя"""
+    current_user_email = get_jwt_identity()
+    user_id, profile_id = get_creds_from_email(current_user_email)
+    limits = get_profile_limits(profile_id)
+
+    question_blocks = get_question_blocks(limits)
+    unsolved = get_unsolved_problems(profile_id)
+    unsolved_dict = {gen["problem_key"]: gen["count"] for gen in unsolved}
+
+    filtered_blocks = [
+        #{ "block": block, "count": unsolved_dict[block["section_key"]]} for block in question_blocks if any(block["section_key"] == gen["problem_key"] for gen in unsolved)
+        block for block in question_blocks if any(block["section_key"] == gen["problem_key"] for gen in unsolved)
+    ]
+    for block in filtered_blocks:
+        block["count"] = unsolved_dict[block["section_key"]]
+    return jsonify(filtered_blocks)
 
 # Статические файлы
 @app.route('/')

@@ -10,6 +10,7 @@ let answersHistory = [];
 let availableTags = [];
 let selectedTags = [];
 let allBlocks = [];
+let workOnErrorsBlocks = [];
 let blocksLoaded = false;
 let autoSubmitOnTimeout = true; // По умолчанию автоотправка включена
 let timeout = 'auto';           // По умолчанию auto
@@ -92,14 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupEventListeners() {
-	// Меню пользователя
-
-
 	// Главный экран
 	newTestBtn.addEventListener('click', showBlocksScreen);
-	workOnErrorsBtn.addEventListener('click', showStatsScreenForErrors);
+	workOnErrorsBtn.addEventListener('click', showWorkOnErrorsScreen);
 	viewStatsBtn.addEventListener('click', showStatsScreen);
-
 
 	// Настройки
 	autoSubmitOnTimeoutCheckbox.addEventListener('change', function() {
@@ -118,8 +115,8 @@ function setupEventListeners() {
 	});
 
 	// Экран выбора блоков
-	backFromBlocksBtn.addEventListener('click', showMainScreen);
-	startTestBtn.addEventListener('click', startNewTest);
+	//backFromBlocksBtn.addEventListener('click', showMainScreen);
+	//startTestBtn.addEventListener('click', startNewTest);
 
 	// Экран тестирования
 	submitAnswerBtn.addEventListener('click', submitAnswer);
@@ -128,6 +125,9 @@ function setupEventListeners() {
 			submitAnswer();
 		}
 	});
+
+	// Экран работы над ошибками
+	// TODO Back btn
 
 	// Экран статистики
 	backFromStatsBtn.addEventListener('click', showMainScreen);
@@ -280,27 +280,24 @@ function showMainScreen() {
 	pageTitle.textContent = 'Математические тесты';
 }
 
+// Выбор блоков при новом тесте
 function showBlocksScreen() {
-	/*
-	if (!currentUser) {
-		alert('Пожалуйста, выберите пользователя для начала теста');
-		return;
-	}
-	*/
-
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'block';
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'none';
+	filtersContainer.style.display = 'block';
 
-	// восстанавливаем selectedBlocks из визуального состояния
-	// при первом отображении экрана
+	// восстанавливаем selectedBlocks из визуального состояния при первом отображении экрана
 	if (!blocksLoaded) {
 		loadBlocks();
 	} else {
 		// Если блоки уже загружены, синхронизируем selectedBlocks с визуальным состоянием
 		syncSelectedBlocksFromUI();
 	}
+
+	// Обновляем фильтры
+	renderFilters();
 
     // Показываем уведомление о сессии, если она есть
     checkActiveSession();
@@ -311,10 +308,42 @@ function showBlocksScreen() {
 	// Обновляем заголовок страницы
 	pageTitle.textContent = 'Новый тест';
 
-	// Если блоки еще не загружены, загружаем их
-	if (!blocksLoaded) {
-		loadBlocks();
-	}
+	// Обработчики кнопок
+	backFromBlocksBtn.addEventListener('click', showMainScreen);
+	startTestBtn.addEventListener('click', startNewTest);
+
+	// Показываем кнопку "В начало"
+	homeBtn.style.display = 'flex';
+
+	// Название кнопки
+	startTestBtn.textContent = 'Начать тест';
+}
+
+// Выбор блоков при работе над ошибками
+async function showWorkOnErrorsScreen() {
+    if (!currentUser) {
+        alert('Для работы над ошибками необходимо войти в систему');
+        return;
+    }
+
+    mainScreen.style.display = 'none';
+    blocksScreen.style.display = 'block';
+    testScreen.style.display = 'none';
+    statsScreen.style.display = 'none';
+    filtersContainer.style.display = 'none';
+
+    // Обновляем заголовок страницы
+	pageTitle.textContent = 'Работа над ошибками';
+
+    // Загружаем блоки с ошибками
+    await loadErrorBlocks();
+
+	// Обработчики кнопок
+	backFromBlocksBtn.addEventListener('click', showMainScreen);
+	startTestBtn.addEventListener('click', startRework);
+
+	// Название кнопки
+	startTestBtn.textContent = 'Начать работу';
 }
 
 function syncSelectedBlocksFromUI() {
@@ -337,11 +366,7 @@ function syncSelectedBlocksFromUI() {
 	selectedBlocks = newSelectedBlocks;
 }
 
-/*
-    ****************************
-    ******  Test screen  *******
-    ****************************
-*/
+
 function showTestScreen() {
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'none';
@@ -403,10 +428,8 @@ async function showStatsScreenForErrors() {
 	// Обновляем заголовок страницы
 	pageTitle.textContent = 'Работа над ошибками';
 
-	// Если блоки еще не загружены, загружаем их перед отображением статистики
-	if (!blocksLoaded) {
-		await loadBlocks();
-	}
+	// Загружаем блоки по которым были ошибки
+	await loadErrorBlocks();
 
 	loadStatistics();
 }
@@ -420,7 +443,6 @@ async function loadBlocks() {
 	blocksList.innerHTML = '<div class="loading">Загрузка блоков вопросов...</div>';
 
 	try {
-		//const response = await fetch(`${API_BASE_URL}/test/blocks`);
 		const response = await fetch(`${API_BASE_URL}/test/blocks`, {
 			method: 'POST',
 			headers: {
@@ -439,7 +461,7 @@ async function loadBlocks() {
 		availableTags = data.available_tags;
 		blocksLoaded = true;
 
-		renderFilters();
+		//renderFilters();
 		renderBlocks(allBlocks);
 		populateBlockFilter();
 
@@ -564,7 +586,98 @@ function toggleBlockSelection(blockId) {
 	));
 }
 
+async function loadErrorBlocks() {
+    blocksList.innerHTML = '<div class="loading">Загрузка блоков с ошибками...</div>';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats/unsolved`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+			body: JSON.stringify({
+				profile_id: currentProfile && currentProfile.id ? currentProfile.id : null
+			})
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки блоков: ${response.status}`);
+        }
+
+        const data = await response.json();
+        workOnErrorsBlocks = data;
+        renderErrorBlocks(workOnErrorsBlocks);
+
+    } catch (error) {
+        console.error('Ошибка при загрузке блоков с ошибками:', error);
+        blocksList.innerHTML = `
+            <div class="error-message">
+                ${error.message}
+            </div>
+        `;
+    }
+}
+
+function renderErrorBlocks(blocks) {
+    blocksList.innerHTML = '';
+
+    if (!blocks || blocks.length === 0) {
+        const noBlocksMessage = document.createElement('div');
+        noBlocksMessage.className = 'no-blocks-message';
+        noBlocksMessage.textContent = 'У вас нет ошибок для работы';
+        blocksList.appendChild(noBlocksMessage);
+        return;
+    }
+
+    blocks.forEach(block => {
+        const blockCard = document.createElement('div');
+        blockCard.className = 'block-card';
+        if (selectedBlocks.includes(block.id)) {
+            blockCard.classList.add('selected');
+        }
+
+        blockCard.innerHTML = `
+            <div class="block-id">${block.id}</div>
+            <h3>${block.name}</h3>
+            <p>Количество ошибок: ${block.count || 0}</p>
+        `;
+
+        // Обработчик выбора блока
+        blockCard.addEventListener('click', function() {
+            blockCard.classList.toggle('selected');
+            toggleErrorBlockSelection(block.id);
+        });
+
+        blocksList.appendChild(blockCard);
+    });
+}
+
+function toggleErrorBlockSelection(blockId) {
+	const index = selectedBlocks.indexOf(blockId);
+
+	if (index === -1) {
+		selectedBlocks.push(blockId);
+	} else {
+		selectedBlocks.splice(index, 1);
+	}
+
+	// Обновляем отображение выбранных блоков
+	renderErrorBlocks(workOnErrorsBlocks);
+}
+
 async function startNewTest() {
+    startTest(false);
+}
+
+async function startRework() {
+    if (!currentUser) {
+        alert('Для работы над ошибками необходимо войти в систему');
+        return;
+    }
+    startTest(true);
+}
+
+async function startTest(rework=false) {
 	// Перед началом теста убедимся, что selectedBlocks синхронизированы
 	syncSelectedBlocksFromUI();
 
@@ -585,7 +698,7 @@ async function startNewTest() {
 	updateAnswersHistory();
 
 	// Показываем состояние загрузки
-	questionText.textContent = 'Создание сессии тестирования...';
+	questionText.textContent = 'Создание сессии ' + rework ? 'работы над ошибками...' : 'тестирования...';
 	currentBlockName.textContent = 'Раздел: Загрузка...';
 	questionProgress.textContent = '[0/0]';
 	answerInput.disabled = true;
@@ -612,7 +725,7 @@ async function startNewTest() {
 			},
 			body: JSON.stringify({
                 profile_id: currentProfile && currentProfile.id ? currentProfile.id : null,
-                work_on_mistakes: false
+                work_on_mistakes: rework
 			})
 		});
 
@@ -1268,7 +1381,8 @@ const accWidget = AccountWidget.getInstance({
         loadLastProfile();
         loadSettings();
         updateAppInfo();
-        loadBlocks();
+        // TODO Это мешает при работе над ошибками, т.к. шаринг функциональности
+        //loadBlocks();
 
         // Применяем настройки профиля
         applyProfileSettings(currentProfile.settings);
