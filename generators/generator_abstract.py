@@ -27,9 +27,6 @@ OPERATION_NAMES = {
     'X': 'икс'
 }
 
-# TODO cross-operator?
-# TODO вынести text-2-speech в отдельный класс
-# TODO Нужен ли метод определяющий использование кастомного компаратора?
 
 class ProblemGenerator(ABC):
     """Базовый класс генератора задач"""
