@@ -12,6 +12,12 @@ from core.units import Units
 
 ANONYMOUS = 'anonymous@localhost'
 
+def init_db():
+    """Инициализация базы данных"""
+    with open('schema.sql', mode='r') as f:
+        with get_db_connection() as conn:
+            conn.cursor().executescript(f.read())
+            conn.commit()
 
 @contextmanager
 def get_db_connection():
@@ -73,8 +79,8 @@ def get_profile_data(profile_id):
 
 
 def get_profile_limits(profile_id):
-    settings = json.loads(get_profile_data(profile_id)["settings"])
     try:
+        settings = json.loads(get_profile_data(profile_id)["settings"])
         profile_limits = settings.get("limits", dict())
     except json.decoder.JSONDecodeError as e:
         profile_limits = {}

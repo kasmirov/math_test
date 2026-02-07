@@ -1,6 +1,6 @@
 from core.core import explore_static_generators, get_generator, get_generators, generate_test_plan, run_test
 from core.db_func import get_users, get_user_profiles, create_profile, get_statistics, get_history, get_solved_problems, \
-    create_session, delete_current_session, get_mistakes, delete_profile, get_profile_limits
+    create_session, delete_current_session, get_mistakes, delete_profile, get_profile_limits, init_db
 from console.menu_manager import MenuManager
 
 
@@ -314,5 +314,6 @@ class MathTestApp:
 
 
 if __name__ == "__main__":
+    init_db()
     app = MathTestApp()
     app.run()

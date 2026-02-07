@@ -20,7 +20,7 @@ from core.core import get_question_blocks, explore_static_generators, generate_t
 from core.db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
-    get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems
+    get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection
 from core.db_config import db_config
 from core.units import Units
 
@@ -45,32 +45,6 @@ app.config['JWT_COOKIE_SAMESITE'] = 'None' if not app.debug else 'Lax'  # Защ
 app.config['JWT_COOKIE_DOMAIN'] = None
 
 jwt = JWTManager(app)
-
-def init_db():
-    """Инициализация базы данных"""
-    with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
-
-
-@contextmanager
-def get_db_connection():
-    """Контекстный менеджер для подключения к БД"""
-    conn = sqlite3.connect(db_config['DATABASE_PATH'])
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
-
-
-def get_db():
-    """Получение подключения к БД"""
-    conn = sqlite3.connect(db_config['DATABASE_PATH'])
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 def validate_password(password):

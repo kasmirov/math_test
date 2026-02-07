@@ -16,6 +16,10 @@ INSERT INTO "users" ("id", "email", "username", "password_hash")
 SELECT 0, 'anonymous@localhost', 'anonymous', 'none'
 WHERE NOT EXISTS ( SELECT 1 FROM users WHERE email = 'anonymous@localhost' );
 
+INSERT INTO "users" ("id", "email", "username", "password_hash")
+SELECT 1, 'default@localhost', 'Default', 'none'
+WHERE NOT EXISTS ( SELECT 1 FROM users WHERE email = 'default@localhost' );
+
 CREATE TABLE IF NOT EXISTS profiles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
