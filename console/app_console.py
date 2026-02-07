@@ -313,7 +313,10 @@ class MathTestApp:
         work_on_mistakes(self.current_profile)
 
 
-if __name__ == "__main__":
+def main():
     init_db()
     app = MathTestApp()
     app.run()
+
+if __name__ == "__main__":
+    main()

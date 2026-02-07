@@ -1028,8 +1028,12 @@ def expired_token_callback(jwt_header, jwt_payload):
     return jsonify({'error': 'Token has expired'}), 401
 
 
-if __name__ == '__main__':
+def main():
     explore_static_generators(latex=True)
     # Инициализация базы данных при запуске
     init_db()
     app.run(host="0.0.0.0", debug=False, port=5000)
+
+
+if __name__ == "__main__":
+    main()
