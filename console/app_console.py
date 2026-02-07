@@ -1,23 +1,7 @@
-import json
-
-from core import explore_static_generators, get_generator, get_generators, generate_test_plan
-from db_func import get_users, get_user_profiles, create_profile, get_statistics, get_history, get_solved_problems, \
+from core.core import explore_static_generators, get_generator, get_generators, generate_test_plan, run_test
+from core.db_func import get_users, get_user_profiles, create_profile, get_statistics, get_history, get_solved_problems, \
     create_session, delete_current_session, get_mistakes, delete_profile, get_profile_limits
-from core import run_test
-from limits import default_limits, deep_merge, validate_limits
-from menu_manager import MenuManager, Action
-
-
-'''
-        operations = {
-            '+': lambda a, b: a + b,
-            '-': lambda a, b: a - b,
-            '×': lambda a, b: a * b,
-            '÷': lambda a, b: a // b
-        }
-        op_symbol = random.choice(list(operations.keys()))
-        op_func = operations[op_symbol]
-'''
+from console.menu_manager import MenuManager
 
 
 def work_on_mistakes(profile):

@@ -1,6 +1,4 @@
-from win32comext.axscript.client.framework import profile
-
-from core import get_generator
+from core.core import get_generator
 
 
 class Action:

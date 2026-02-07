@@ -6,9 +6,9 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import List, Dict
 
-from limits import default_limits, validate_limits, deep_merge
-from db_config import db_config
-from units import Units
+from core.limits import default_limits, validate_limits, deep_merge
+from core.db_config import db_config
+from core.units import Units
 
 ANONYMOUS = 'anonymous@localhost'
 

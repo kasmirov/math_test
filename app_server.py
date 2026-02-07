@@ -13,18 +13,16 @@ from flask_jwt_extended import (
     jwt_required, get_jwt_identity, set_access_cookies,
     set_refresh_cookies, unset_jwt_cookies, verify_jwt_in_request
 )
-from flask_jwt_extended.exceptions import NoAuthorizationError, JWTExtendedException
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from core import get_question_blocks, explore_static_generators, generate_test_plan, get_generator
-from limits import default_limits
+from core.core import get_question_blocks, explore_static_generators, generate_test_plan, get_generator
 
-from db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
+from core.db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
-    get_statistics, get_user_profiles, get_profile_data, get_profile_limits, get_unsolved_problems
-from db_config import db_config
-from units import Units
+    get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems
+from core.db_config import db_config
+from core.units import Units
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 

@@ -15,10 +15,10 @@ from generators.generator_geom_fig_props import GeometryFigurePropertiesGenerato
 from generators.generator_fraction import FractionGenerator
 from generators.generator_clock import ClockGeneratorSimple, ClockGeneratorHard
 
-from db_func import add_question_to_session, get_mistakes, get_history, get_questions_number, update_history, \
+from core.db_func import add_question_to_session, get_mistakes, get_history, get_questions_number, update_history, \
     get_question, update_current_question_start_time, get_current_question_start_time, increase_current_question_idx, \
     update_mistakes
-from units import Units
+from core.units import Units
 
 # Регистрация генераторов
 # TODO Переделать в кэш от хэша лимитов

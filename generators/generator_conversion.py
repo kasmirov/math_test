@@ -1,7 +1,7 @@
 import random
 
 from generators.generator_abstract import ProblemGenerator
-from units import Length, Weight, Volume
+from core.units import Length, Weight, Volume
 
 
 class ConversionGenerator(ProblemGenerator):

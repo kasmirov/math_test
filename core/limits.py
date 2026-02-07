@@ -3,8 +3,8 @@ import json
 import jsonschema
 from typing import Any, Dict
 
-DEFAULT_YAML = 'default_limits.yaml'
-SCHEMA_JSON = 'limits_schema.json'
+DEFAULT_YAML = 'core/default_limits.yaml'
+SCHEMA_JSON = 'core/limits_schema.json'
 
 def base_limits():
     with open(DEFAULT_YAML, 'r', encoding='utf-8') as f:
