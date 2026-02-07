@@ -1,7 +1,6 @@
 import random
 
-from generator_abstract import ProblemGenerator
-from generate_operators import generate_operators
+from generators.generator_abstract import ProblemGenerator
 from units import Length, Weight, Volume
 
 

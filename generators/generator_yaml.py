@@ -1,7 +1,7 @@
 import yaml
 import random
 
-from generator_abstract import ProblemGenerator
+from generators.generator_abstract import ProblemGenerator
 
 class YamlProblemGenerator(ProblemGenerator):
     """Генератор задач из YAML-файла"""

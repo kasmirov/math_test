@@ -2,23 +2,22 @@ from datetime import datetime
 import re
 import time
 
-from generator_add_sub import AdditionSubtractionGenerator
-from generator_comparison import ComparisonGenerator
-from generator_conversion import ConversionGenerator
-from generator_div import DivisionGenerator
-from generator_equation import EquationGenerator
-from generator_mul import MultiplicationGenerator
-from generator_priority import PriorityOperationsGenerator
-from generator_priority_3rd_grade import PriorityOperationsGenerator3rd, PriorityOperationsGenerator4th
-from generator_yaml import YamlProblemGenerator
-from generator_geom_fig_props import GeometryFigurePropertiesGenerator
-from generator_fraction import FractionGenerator
-from generator_clock import ClockGeneratorSimple, ClockGeneratorHard
+from generators.generator_add_sub import AdditionSubtractionGenerator
+from generators.generator_comparison import ComparisonGenerator
+from generators.generator_conversion import ConversionGenerator
+from generators.generator_div import DivisionGenerator
+from generators.generator_equation import EquationGenerator
+from generators.generator_mul import MultiplicationGenerator
+from generators.generator_priority import PriorityOperationsGenerator
+from generators.generator_priority_3rd_grade import PriorityOperationsGenerator3rd, PriorityOperationsGenerator4th
+from generators.generator_yaml import YamlProblemGenerator
+from generators.generator_geom_fig_props import GeometryFigurePropertiesGenerator
+from generators.generator_fraction import FractionGenerator
+from generators.generator_clock import ClockGeneratorSimple, ClockGeneratorHard
 
 from db_func import add_question_to_session, get_mistakes, get_history, get_questions_number, update_history, \
     get_question, update_current_question_start_time, get_current_question_start_time, increase_current_question_idx, \
     update_mistakes
-from limits import base_limits
 from units import Units
 
 # Регистрация генераторов
@@ -40,8 +39,8 @@ def explore_static_generators(latex=False, has_text_mode=None):
             PriorityOperationsGenerator4th(),
             ComparisonGenerator(),
             ConversionGenerator(),
-            YamlProblemGenerator("2nd_grade.yaml"),
-            YamlProblemGenerator("3rd_grade.yaml"),
+            YamlProblemGenerator("generators/2nd_grade.yaml"),
+            YamlProblemGenerator("generators/3rd_grade.yaml"),
             GeometryFigurePropertiesGenerator(),
             FractionGenerator(),
             ClockGeneratorSimple(),

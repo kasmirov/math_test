@@ -1,7 +1,5 @@
-import random
-
-from generator_abstract import ProblemGenerator
-from generate_operators import generate_operators
+from generators.generator_abstract import ProblemGenerator
+from generators.generate_operators import generate_operators
 
 
 class DivisionGenerator(ProblemGenerator):

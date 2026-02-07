@@ -1,9 +1,8 @@
 import random
 import math
-from datetime import datetime, timedelta
 from enum import Enum
 
-from generator_abstract import ProblemGenerator
+from generators.generator_abstract import ProblemGenerator
 
 
 def generate_clock_svg(hour, minute, clock_style="detailed"):

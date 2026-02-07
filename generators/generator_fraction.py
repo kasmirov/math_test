@@ -1,6 +1,6 @@
 import random
 import math
-from generator_abstract import ProblemGenerator
+from generators.generator_abstract import ProblemGenerator
 
 
 class FractionGenerator(ProblemGenerator):
