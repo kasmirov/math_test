@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки аккаунта</title>
+    <link rel="stylesheet" href="./css/style.css">
+	<link rel="stylesheet" href="./css/tree-editor.css">
+    <style>
+        /* Дополнительные стили для страницы аккаунта */
+        .account-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e5e7eb;
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .account-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .info-value {
+            color: #6b7280;
+        }
+
+        .danger-zone {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 40px;
+        }
+
+        .danger-zone h3 {
+            color: #dc2626;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .danger-zone p {
+            color: #991b1b;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .profile-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .profile-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .profile-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 16px;
+        }
+
+        .profile-type {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .profile-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .profile-settings {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state p {
+            margin-bottom: 15px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #f3f4f6;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Стили для скроллбара */
+        .profile-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .profile-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .profile-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .profile-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .tree-actions {
+            padding-bottom: 8px;
+        }
+
+        /* Стили для контекстного меню редактора */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .context-menu-item.danger {
+            color: #dc2626;
+        }
+
+        .context-menu-item.danger:hover {
+            background: #fee2e2;
+        }
+
+        .context-menu-item.disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .context-menu-item.disabled:hover {
+            background: white;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 4px 0;
+        }
+
+        .context-menu-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Buttons */
+
+        .tree-actions button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tree-actions button:hover {
+            background: #45a049;
+        }
+
+        .tree-actions button.secondary {
+            background: #2196F3;
+        }
+
+        .tree-actions button.secondary:hover {
+            background: #0b7dda;
+        }
+
+        .tree-actions button.danger {
+            background: #f44336;
+        }
+
+        .tree-actions button.danger:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo" id="pageTitle">Настройки аккаунта</div>
+            <div class="new-menu-container" id="newMenu">
+                <!-- Виджет будет вставлен здесь -->
+            </div>
+        </header>
+
+        <div class="account-page">
+            <div id="notAuthenticated" style="display: none;">
+                <div class="card">
+                    <h2>Доступ запрещен</h2>
+                    <p>Для доступа к настройкам аккаунта необходимо войти в систему.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/'">На главную</button>
+                </div>
+            </div>
+
+            <div id="authenticatedContent" style="display: none;">
+                <div class="tabs">
+                    <button class="tab active" data-tab="account">Аккаунт</button>
+                    <button class="tab" data-tab="profiles">Профили</button>
+                </div>
+
+                <div class="tab-content active" id="account-tab">
+                    <div class="content-grid">
+                        <div class="card">
+                            <h2>Основная информация</h2>
+                            <div id="accountAlert"></div>
+                            <form id="accountForm">
+                                <div class="form-group">
+                                    <label for="accountEmail">Email:</label>
+                                    <input type="email" id="accountEmail" class="form-control" readonly>
+                                    <small style="color: #6b7280; font-size: 12px;">Email нельзя изменить</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="accountUsername">Имя пользователя:</label>
+                                    <input type="text" id="accountUsername" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h2>Информация об аккаунте</h2>
+                            <div class="account-info-row">
+                                <span class="info-label">Дата регистрации:</span>
+                                <span class="info-value" id="accountCreatedAt">—</span>
+                            </div>
+                            <div class="account-info-row">
+                                <span class="info-label">Количество профилей:</span>
+                                <span class="info-value" id="profilesCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="danger-zone">
+                        <h3>Удаление аккаунта</h3>
+                        <p>Удаление аккаунта невозможно отменить. Все ваши данные и профили будут безвозвратно удалены.</p>
+                        <button class="btn btn-danger" id="deleteAccountBtn">Удалить аккаунт</button>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="profiles-tab">
+                    <div class="card">
+                        <h2>Профили</h2>
+
+                        <div class="table-container">
+                            <table class="profiles-table" id="profilesTable">
+                                <thead>
+                                    <tr>
+                                        <th width="40"></th>
+                                        <th>Имя</th>
+                                        <th>Тип профиля</th>
+                                        <th>Настройки</th>
+                                        <th>Дата создания</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profilesTableBody">
+                                    <!-- Профили будут загружены динамически -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-actions">
+                            <button class="btn btn-primary" id="newProfileBtn">Новый профиль</button>
+                            <button class="btn btn-danger" id="deleteSelectedProfileBtn" disabled>Удалить</button>
+                        </div>
+
+                        <div id="profileAlert"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/account-widget.js"></script>
+    <script src="js/tree-editor.js"></script>
+    <script src="js/account-page.js"></script>
+</body>
+</html>
