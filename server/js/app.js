@@ -1331,7 +1331,7 @@ function loadLastProfile() {
 const accWidget = AccountWidget.getInstance({
     apiBaseUrl: API_BASE_URL,
     alignment: 'right',
-    container: '.new-menu-container',
+    container: '.user-menu-container',
     accountPageUrl: '/account.html',
 
     onLogin: (user) => {
@@ -1410,8 +1410,6 @@ const accWidget = AccountWidget.getInstance({
         loadLastProfile();
         loadSettings();
         updateAppInfo();
-        // TODO Это мешает при работе над ошибками, т.к. шаринг функциональности
-        //loadBlocks();
 
         // Применяем настройки профиля
         applyProfileSettings(currentProfile.settings);

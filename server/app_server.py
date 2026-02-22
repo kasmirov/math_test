@@ -958,6 +958,19 @@ def index():
     return send_from_directory('templates', 'index.html')
 
 
+@app.route('/app')
+def app_index():
+    return send_from_directory('templates', 'app.html')
+
+
+@app.route('/help')
+def help():
+    return send_from_directory('templates', 'help.html')
+
+@app.route('/footer.html')
+def footer():
+    return send_from_directory('templates', 'footer.html')
+
 @app.route('/account.html')
 @jwt_required()
 def account():
