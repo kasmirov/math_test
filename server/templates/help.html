@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Как пользоваться тренажёром MathTest — подробная инструкция</title>
+    <meta name="description" content="Пошаговое руководство по работе с генератором тестов по математике: создание профиля, настройка параметров, запуск теста, просмотр статистики и работа над ошибками.">
+    <link rel="canonical" href="/help">
+    <!-- Подключаем стандартный стиль проекта -->
+    <link rel="stylesheet" href="./css/style.css">
+    <style>
+        /* Специфические стили для страницы инструкции */
+        .instruction-block {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .instruction-block h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .instruction-block h3 {
+            color: var(--secondary-color);
+            margin: 25px 0 15px;
+        }
+        .instruction-block pre {
+            background: var(--dark-color);
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .instruction-block ul, .instruction-block ol {
+            margin-left: 25px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .instruction-block li {
+            margin-bottom: 8px;
+        }
+        .note {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--warning-color);
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .btn-large {
+            font-size: 1.2rem;
+            padding: 15px 30px;
+        }
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 15px; }
+        }
+    </style>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                packages: {'[+]': ['ams', 'boldsymbol']}
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                renderActions: {
+                    addMenu: [0, '', '']
+                }
+            },
+            startup: {
+                ready: function() {
+                    MathJax.startup.defaultReady();
+                    // Перерисовываем формулы при динамической загрузке контента
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax готов к работе');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Математические тесты</div>
+            <div class="menu-container">
+                <nav class="nav-links" style="display: flex; gap: 20px; align-items: center;">
+                    <a href="/" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Главная</a>
+                    <a href="/help" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Инструкция</a>
+                    <a href="https://github.com/kasmirov/math_test" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">GitHub</a>
+                    <a href="https://github.com/kasmirov/math_test/issues" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Сообщить о проблеме</a>
+                    <a href="/app" class="btn" style="margin: 0;">Начать тест</a>
+                    <div class="user-menu-container" id="newMenu">
+                        <!-- Виджет будет вставлен здесь -->
+                    </div>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+            <h1 style="color: var(--primary-color); margin: 30px 0; padding-left: 20px;">Инструкция по использованию MathTest</h1>
+
+            <div class="instruction-block">
+                <h2>⚡ Быстрый старт</h2>
+                <ol>
+                    <li>Перейдите на главную страницу и нажмите <strong>«Начать тест»</strong>.</li>
+                    <li>Вы можете работать анонимно или создать профиль (рекомендуется для сохранения статистики).</li>
+                    <li>Выберите темы: сложение-вычитание, умножение, деление или многие другие.</li>
+                    <li>Решайте примеры, вводите ответы. После завершения увидите результат.</li>
+                </ol>
+                <div class="note">
+                    <strong>ℹ️ Примечание:</strong> Если вы не создадите профиль, история тестов не сохранится. Соответственно функционал просмотра статистики и работы над ошибками будет недоступен. Для полноценного использования создайте профиль через меню.
+                </div>
+            </div>
+
+            <div class="instruction-block">
+                <h2>👤 Создание и настройка профиля</h2>
+                <p>Профиль позволяет вести персональную статистику и настраивать параметры тестов.</p>
+                <ul>
+                    <li>Нажмите на иконку пользователя или перейдите в раздел «Аккаунт».</li>
+                    <li>Выберите «Создать новый профиль», укажите имя.</li>
+                    <li>При создании или позже (через редактирование) можно задать:
+                        <ul>
+                            <li><strong>Количество вопросов</strong> в тесте (по умолчанию 10).</li>
+                            <li><strong>Лимит времени</strong> на весь тест или на один вопрос.</li>
+                            <li><strong>Диапазон чисел</strong> (например, от 1 до 20).</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p>Если лимиты не заданы, используются значения по умолчанию. Профилей может быть несколько (например, для разных детей).</p>
+            </div>
+
+            <div class="instruction-block">
+                <h2>⚙️ Настройка теста</h2>
+                <p>На главной странице приложения откройте меню «Настройки» (или «Settings»). В панели вы сможете:</p>
+                <ul>
+                    <li><strong>Выбрать тему:</strong> сложение, вычитание, умножение, деление или комбинированный режим.</li>
+                    <li><strong>Указать сложность:</strong> например, только таблица умножения или двузначные числа.</li>
+                    <li><strong>Загрузить готовый тест</strong> из YAML-файла (см. раздел «Свои тесты»).</li>
+                </ul>
+            </div>
+
+            <div class="instruction-block">
+                <h2>📊 Статистика и работа над ошибками</h2>
+                <p>После каждого теста вы можете просмотреть подробный отчёт:</p>
+                <ul>
+                    <li>Количество правильных и неправильных ответов.</li>
+                    <li>Время, затраченное на каждый вопрос.</li>
+                    <li>Общий процент успеха.</li>
+                </ul>
+                <p><strong>Работа над ошибками:</strong> в разделе статистики напротив каждого теста есть кнопка «Повторить ошибки». При её нажатии генерируется новый тест, состоящий только из тех примеров, которые были решены неверно. Это помогает закрепить материал.</p>
+            </div>
+
+            <div class="instruction-block">
+                <h2>📁 Использование готовых тестов (YAML)</h2>
+                <p>Вы можете создавать собственные наборы заданий в формате YAML. Пример структуры:</p>
+                <pre>
+- question: "2 + 2"
+  answer: 4
+- question: "3 * 3"
+  answer: 9
+- question: "15 - 7"
+  answer: 8</pre>
+
+                <h3>📐 Пример с формулами (LaTeX)</h3>
+                <p>Если в вопросе или ответе нужно отобразить математическое выражение, используйте LaTeX-разметку внутри двойных кавычек. Обратные слеши необходимо экранировать (удваивать). При рендеринге формулы будут выглядеть красиво:</p>
+                <pre>
+- question: "Решите уравнение: $\\frac{2x + 4}{5} = \\sqrt[3]{8}$"
+  answer: 3
+- question: "Вычислите: $\\left(\\frac{1}{2} + \\frac{3}{4}\\right) \\cdot 8$"
+  answer: 10</pre>
+                <p><strong>Пример отображения LaTeX:</strong></p>
+                <ul>
+                    <li>Решите уравнение: \(\frac{2x + 4}{5} = \sqrt[3]{8}\)</li>
+                    <li>Вычислите: \(\left(\frac{1}{2} + \frac{3}{4}\right) \cdot 8\)</li>
+                </ul>
+                <p>Вы можете сделать PR на github, чтобы сделать этот тест доступным для всех.</p>
+                <p>Также учитель может загрузить такой файл через интерфейс, чтобы задать его своим ученикам.</p>
+                <div class="note">
+                    Функционал загрузки персональных yaml файлов в разработке
+                </div>
+            </div>
+
+            <div class="instruction-block">
+                <h2>⌨️ Консольный режим</h2>
+                <p>Для запуска на локальном или удаленном компьютере без графического интерфейса можно использовать консольную версию.</p>
+                <p>Для этого надо скачать исходники проекта с <a href="https://github.com/kasmirov/math_test/">GitHub</a>, установить зависимости в окружение python и запустить команду:</p>
+                <pre>python math_test.py --console</pre>
+                <p>Доступен весь функционал, который не требуют HTML-разметки.</p>
+                <p>Смотри подробное описание в файле <a href="https://github.com/kasmirov/math_test/blob/main/README_RU.md">README_RU.md</a> </p>
+            </div>
+
+            <div class="instruction-block">
+                <h2>💡 Советы</h2>
+                <ul>
+                    <li>Регулярно занимайтесь по 10–15 минут в день — это улучшает навыки счёта.</li>
+                    <li>Используйте «Работу над ошибками» после каждого теста.</li>
+                    <li>Для подготовки к контрольным выбирайте ограничение по времени.</li>
+                    <li>Если вы учитель, создавайте отдельные профили для учеников и экспортируйте статистику (функция в разработке).</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin: 50px 0;">
+                <a href="/app" class="btn btn-large">Перейти к тесту</a>
+            </div>
+        </main>
+        <div id="footer-placeholder"></div>
+    </div>
+    <script src="js/account-widget.js"></script>
+    <script src="js/help.js"></script>
+    <script src="js/footer.js"></script>
+</body>
+</html>

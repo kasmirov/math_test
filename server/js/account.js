@@ -168,7 +168,7 @@ class AccountPage {
         const accountWidget = AccountWidget.getInstance({
             apiBaseUrl: API_BASE_URL,
             alignment: 'right',
-            container: '.new-menu-container',
+            container: '.user-menu-container',
             accountPageUrl: '/account.html',
             showSettings: false,
             showProfiles: false,
