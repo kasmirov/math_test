@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор тестов по математике для детей 7–11 лет | Тренажёр с примерами и статистикой</title>
-    <meta name="description" content="Бесплатный онлайн-тренажёр по математике для младших школьников. Автоматическая генерация примеров на сложение, вычитание, умножение и деление. Отслеживайте прогресс ребёнка через статистику и работайте над ошибками. Удобно для родителей и учителей.">
-    <meta name="keywords" content="математика для детей, примеры по математике, тесты по математике, тренажёр по математике, задачи 2 класс, сложение и вычитание, таблица умножения, работа над ошибками, успеваемость в школе">
+    <meta name="description" content="Бесплатный онлайн-тренажёр по математике для младших школьников. Автоматическая генерация заданий по математике с настройкой пределов. Отслеживайте прогресс ребёнка через статистику и работайте над ошибками. Удобно для родителей и учителей.">
+    <meta name="keywords" content="математика для детей, примеры по математике, тесты по математике, тренажёр по математике, задачи 2,3,4 класс, сложение и вычитание, таблица умножения, работа над ошибками, успеваемость в школе">
     <meta name="author" content="kasmirov">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://ваш-домен.ru/">
@@ -20,24 +20,49 @@
     <!-- Дополнительные стили только для статических страниц (можно добавить в отдельный файл или оставить здесь) -->
     <style>
         /* Небольшие дополнения, не конфликтующие с основным стилем */
+        header {
+            background-color: #1e293b;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 5px;
+        }
         .hero {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white;
+            padding: 4rem 0;
             text-align: center;
-            padding: 60px 20px;
-            background: var(--footer-color);
-            color: var(--primary-color);
-            border-radius: 12px;
-            margin-bottom: 40px;
         }
         .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: var(--primary-color);
+            font-size: 2.8rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
         }
         .hero p {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             max-width: 800px;
-            margin: 0 auto 30px;
-            opacity: 0.95;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+        }
+        .logo {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .features {
+            padding: 4rem 0;
+            background-color: white;
+        }
+        .features h2 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 3rem;
+            color: #1e293b;
         }
         .feature-grid {
             display: grid;
@@ -119,9 +144,9 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="background-color: #1e293b; max-width: stretch;">
         <header>
-            <div class="logo">Математические тесты</div>
+            <div class="logo" id="pageTitle">Математические тесты</div>
             <div class="menu-container">
                 <nav class="nav-links" style="display: flex; gap: 20px; align-items: center;">
                     <a href="/" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Главная</a>
@@ -135,81 +160,89 @@
                 </nav>
             </div>
         </header>
+    </div>
+    
 
         <main>
             <section class="hero">
-                <h1>Генератор тестов по математике для детей 7–11 лет</h1>
-                <p>Бесплатный тренажёр для отработки навыков счёта, подготовки к контрольным и улучшения успеваемости. Автоматическая генерация примеров, подробная статистика и работа над ошибками.</p>
-                <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-                    <a href="/app" class="btn">Попробовать бесплатно</a>
-                    <a href="/help" class="btn btn-secondary">Как пользоваться</a>
-                </div>
-            </section>
-
-            <section style="margin: 60px 0;">
-                <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 40px;">Возможности тренажёра</h2>
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">🧮</div>
-                        <h3>Генерация по темам</h3>
-                        <p>Сложение, вычитание, умножение, деление и смешанные примеры. Уровень сложности настраивается.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
-                        <h3>Детальная статистика</h3>
-                        <p>История тестов, время выполнения, процент правильных ответов. Отслеживайте прогресс ребёнка.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🔄</div>
-                        <h3>Работа над ошибками</h3>
-                        <p>Повторная проработка заданий, в которых были допущены ошибки, для закрепления материала.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">⏱️</div>
-                        <h3>Контроль времени</h3>
-                        <p>Ограничение по времени на тест или вопрос — тренируйте скорость и собранность.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📁</div>
-                        <h3>Готовые тесты в YAML</h3>
-                        <p>Используйте предопределённые наборы заданий или создавайте свои в простом текстовом формате.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">👥</div>
-                        <h3>Профили пользователей</h3>
-                        <p>Отдельные настройки и история для каждого ребёнка. Анонимный режим тоже доступен.</p>
+                <div class="container">
+                    <h1>Генератор тестов по математике для детей 7–11 лет</h1>
+                    <p>Бесплатный тренажёр для отработки навыков счёта, подготовки к контрольным и улучшения успеваемости. Автоматическая генерация заданий, подробная статистика и работа над ошибками.</p>
+                    <div>
+                        <a href="/app" class="btn">Попробовать бесплатно</a>
+                        <a href="/help" class="btn btn-secondary">Как пользоваться</a>
                     </div>
                 </div>
             </section>
 
-            <section style="background-color: var(--light-color); padding: 40px; border-radius: 12px; margin: 60px 0;">
-                <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 40px;">Как это работает</h2>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <h3>Создайте профиль</h3>
-                        <p style="color: #666;">Задайте имя и ограничения. Можно работать без регистрации.</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <h3>Выберите тему</h3>
-                        <p style="color: #666;">Сложение, вычитание, умножение или деление. Или готовый тест.</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <h3>Решайте примеры</h3>
-                        <p style="color: #666;">Вводите ответы, контролируйте время.</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <h3>Анализируйте результат</h3>
-                        <p style="color: #666;">Изучите статистику, повторите ошибки.</p>
+            <section class="features">
+                <div class="container">
+                    <h2>Возможности тренажёра</h2>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">🧮</div>
+                            <h3>Генерация по темам</h3>
+                            <p>Сложение, вычитание, умножение, деление и смешанные примеры. Уровень сложности настраивается.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <h3>Детальная статистика</h3>
+                            <p>История тестов, время выполнения, процент правильных ответов. Отслеживайте прогресс ребёнка.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔄</div>
+                            <h3>Работа над ошибками</h3>
+                            <p>Повторная проработка заданий, в которых были допущены ошибки, для закрепления материала.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">⏱️</div>
+                            <h3>Контроль времени</h3>
+                            <p>Ограничение по времени на тест или вопрос — тренируйте скорость и собранность.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📁</div>
+                            <h3>Готовые тесты в YAML</h3>
+                            <p>Используйте предопределённые наборы заданий или создавайте свои в простом текстовом формате.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">👥</div>
+                            <h3>Профили пользователей</h3>
+                            <p>Отдельные настройки и история для каждого ребёнка. Анонимный режим тоже доступен.</p>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section style="margin: 60px 0;">
-                <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 40px;">Кому пригодится</h2>
+            <section class="features">
+                <div class="container">
+                    <h2>Как это работает</h2>
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <h3>Создайте профиль</h3>
+                            <p style="color: #666;">Задайте имя и ограничения. Можно работать без регистрации.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <h3>Выберите тему</h3>
+                            <p style="color: #666;">Сложение, вычитание, умножение или деление. Или готовый тест.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <h3>Решайте примеры</h3>
+                            <p style="color: #666;">Вводите ответы, контролируйте время.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <h3>Анализируйте результат</h3>
+                            <p style="color: #666;">Изучите статистику, повторите ошибки.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="features">
+                <h2>Кому пригодится</h2>
                 <div class="whom-grid">
                     <div class="whom-item">
                         <h3>👨‍👩‍👧 Родителям</h3>
@@ -227,7 +260,6 @@
             </section>
         </main>
         <div id="footer-placeholder"></div>
-    </div>
     <script src="js/account-widget.js"></script>
     <script src="js/index.js"></script>
     <script src="js/footer.js"></script>
