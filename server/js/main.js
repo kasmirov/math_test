@@ -10,12 +10,15 @@ let answersHistory = [];
 let availableTags = [];
 let selectedTags = [];
 let allBlocks = [];
-let workOnErrorsBlocks = [];
+let workOnMistakesBlocks = [];
 let blocksLoaded = false;
-let autoSubmitOnTimeout = true; // По умолчанию автоотправка включена
-let timeout = 'auto';           // По умолчанию auto
+let selectedBlocks = [];            // Выбранные блоки в тесте
+let selectedWorkOnMistakesBlocks = [];    // Выбранные блоки в работе над ошибками
+
+// Default settings
+let timeout = 'auto';               // По умолчанию auto
 let numOfQuestions = 3;
-let selectedBlocks = [];
+let autoSubmitOnTimeout = true;     // По умолчанию автоотправка включена
 
 // API базовый URL
 const API_BASE_URL = '/api';
@@ -64,8 +67,6 @@ const statsFilters = document.getElementById('statsFilters');
 const sessionNotification = document.getElementById('sessionNotification');
 const notificationRestoreBtn = document.getElementById('notificationRestoreBtn');
 const notificationCloseBtn = document.getElementById('notificationCloseBtn');
-
-// Меню пользователя
 
 
 // Инициализация приложения
@@ -116,19 +117,15 @@ function setupEventListeners() {
 	});
 
 	// Экран выбора блоков
-	//backFromBlocksBtn.addEventListener('click', showMainScreen);
-	//startTestBtn.addEventListener('click', startNewTest);
+	backFromBlocksBtn.addEventListener('click', showMainScreen);
 
-	// Экран тестирования
+	// Экран тестирования и экран работы над ошибками
 	submitAnswerBtn.addEventListener('click', submitAnswer);
 	answerInput.addEventListener('keypress', function(e) {
 		if (e.key === 'Enter') {
 			submitAnswer();
 		}
 	});
-
-	// Экран работы над ошибками
-	// TODO Back btn
 
 	// Экран статистики
 	backFromStatsBtn.addEventListener('click', showMainScreen);
@@ -292,12 +289,8 @@ function showBlocksScreen() {
 	filtersContainer.style.display = 'block';
 
 	// восстанавливаем selectedBlocks из визуального состояния при первом отображении экрана
-	if (!blocksLoaded) {
-		loadBlocks();
-	} else {
-		// Если блоки уже загружены, синхронизируем selectedBlocks с визуальным состоянием
-		syncSelectedBlocksFromUI();
-	}
+	loadBlocks();
+	syncSelectedBlocksFromUI();
 
 	// Обновляем фильтры
 	renderFilters();
@@ -312,8 +305,7 @@ function showBlocksScreen() {
 	pageTitle.textContent = 'Новый тест';
 
 	// Обработчики кнопок
-	backFromBlocksBtn.addEventListener('click', showMainScreen);
-	startTestBtn.addEventListener('click', startNewTest);
+	startTestBtn.onclick = startNewTest;
 
 	// Показываем кнопку "В начало"
 	homeBtn.style.display = 'flex';
@@ -341,22 +333,25 @@ async function showWorkOnErrorsScreen() {
 	pageTitle.textContent = 'Работа над ошибками';
 
     // Загружаем блоки с ошибками
-    await loadErrorBlocks();
+    await loadWorkOnMistakesBlocks();
+	// Отображаем блоки
+	renderWorkOnMistakes(workOnMistakesBlocks);
+    // Синхронизация блоков
+    syncWorkOnMistakesBlocksFromUI();
 
 	// Обработчики кнопок
-	backFromBlocksBtn.addEventListener('click', showMainScreen);
-	startTestBtn.addEventListener('click', startRework);
+	startTestBtn.onclick = startWorkOnMistakes;
 
 	// Показываем кнопку "В начало"
 	homeBtn.style.display = 'flex';
 
 	// Название кнопки
-	startTestBtn.textContent = 'Начать работу';
+	startTestBtn.textContent = 'Начать работу над ошибками';
 }
 
 function syncSelectedBlocksFromUI() {
 	// Получаем все карточки блоков
-	const blockCards = document.querySelectorAll('.block-card');
+	const blockCards = blocksList.querySelectorAll('.block-card');
 	const newSelectedBlocks = [];
 
 	blockCards.forEach(card => {
@@ -372,6 +367,26 @@ function syncSelectedBlocksFromUI() {
 
 	// Обновляем selectedBlocks
 	selectedBlocks = newSelectedBlocks;
+}
+
+function syncWorkOnMistakesBlocksFromUI() {
+	// Получаем все карточки блоков
+	const blockCards = errorsBlocksList.querySelectorAll('.block-card');
+	const newSelectedBlocks = [];
+
+	blockCards.forEach(card => {
+		if (card.classList.contains('selected')) {
+			// Извлекаем ID блока из данных карточки
+			const blockIdElement = card.querySelector('.block-id');
+			if (blockIdElement) {
+				const blockId = parseInt(blockIdElement.textContent);
+				newSelectedBlocks.push(blockId);
+			}
+		}
+	});
+
+	// Обновляем selectedBlocks
+	selectedWorkOnMistakesBlocks = newSelectedBlocks;
 }
 
 
@@ -442,7 +457,7 @@ async function showStatsScreenForErrors() {
 	pageTitle.textContent = 'Работа над ошибками';
 
 	// Загружаем блоки по которым были ошибки
-	await loadErrorBlocks();
+	await loadWorkOnMistakesBlocks();
 
 	loadStatistics();
 }
@@ -599,7 +614,7 @@ function toggleBlockSelection(blockId) {
 	));
 }
 
-async function loadErrorBlocks() {
+async function loadWorkOnMistakesBlocks() {
     errorsBlocksList.innerHTML = '<div class="loading">Загрузка блоков с ошибками...</div>';
 
     try {
@@ -618,8 +633,8 @@ async function loadErrorBlocks() {
         }
 
         const data = await response.json();
-        workOnErrorsBlocks = data;
-        renderErrorBlocks(workOnErrorsBlocks);
+        workOnMistakesBlocks = data;
+        renderWorkOnMistakes(workOnMistakesBlocks);
 
     } catch (error) {
         console.error('Ошибка при загрузке блоков с ошибками:', error);
@@ -631,7 +646,7 @@ async function loadErrorBlocks() {
     }
 }
 
-function renderErrorBlocks(blocks) {
+function renderWorkOnMistakes(blocks) {
     errorsBlocksList.innerHTML = '';
 
     if (!blocks || blocks.length === 0) {
@@ -645,7 +660,7 @@ function renderErrorBlocks(blocks) {
     blocks.forEach(block => {
         const blockCard = document.createElement('div');
         blockCard.className = 'block-card';
-        if (selectedBlocks.includes(block.id)) {
+        if (selectedWorkOnMistakesBlocks.includes(block.id)) {
             blockCard.classList.add('selected');
         }
 
@@ -658,31 +673,31 @@ function renderErrorBlocks(blocks) {
         // Обработчик выбора блока
         blockCard.addEventListener('click', function() {
             blockCard.classList.toggle('selected');
-            toggleErrorBlockSelection(block.id);
+            toggleWorkOnMistakesBlocksSelection(block.id);
         });
 
         errorsBlocksList.appendChild(blockCard);
     });
 }
 
-function toggleErrorBlockSelection(blockId) {
-	const index = selectedBlocks.indexOf(blockId);
+function toggleWorkOnMistakesBlocksSelection(blockId) {
+	const index = selectedWorkOnMistakesBlocks.indexOf(blockId);
 
 	if (index === -1) {
-		selectedBlocks.push(blockId);
+		selectedWorkOnMistakesBlocks.push(blockId);
 	} else {
-		selectedBlocks.splice(index, 1);
+		selectedWorkOnMistakesBlocks.splice(index, 1);
 	}
 
 	// Обновляем отображение выбранных блоков
-	renderErrorBlocks(workOnErrorsBlocks);
+	renderWorkOnMistakes(workOnMistakesBlocks);
 }
 
 async function startNewTest() {
     startTest(false);
 }
 
-async function startRework() {
+async function startWorkOnMistakes() {
     if (!currentUser) {
         alert('Для работы над ошибками необходимо войти в систему');
         return;
@@ -690,11 +705,10 @@ async function startRework() {
     startTest(true);
 }
 
-async function startTest(rework=false) {
-	// Перед началом теста убедимся, что selectedBlocks синхронизированы
-	syncSelectedBlocksFromUI();
-
-	if (selectedBlocks.length === 0) {
+async function startTest(workOnMistakes) {
+    let sessionBlocks = [];
+    sessionBlocks = workOnMistakes ? selectedWorkOnMistakesBlocks : selectedBlocks;
+	if (sessionBlocks.length === 0) {
 		alert('Пожалуйста, выберите хотя бы один блок вопросов');
 		return;
 	}
@@ -713,7 +727,7 @@ async function startTest(rework=false) {
 	updateAnswersHistory();
 
 	// Показываем состояние загрузки
-	questionText.textContent = 'Создание сессии ' + rework ? 'работы над ошибками...' : 'тестирования...';
+	questionText.textContent = 'Создание сессии ' + workOnMistakes ? 'работы над ошибками...' : 'тестирования...';
 	currentBlockName.textContent = 'Раздел: Загрузка...';
 	questionProgress.textContent = '[0/0]';
 	answerInput.disabled = true;
@@ -722,13 +736,13 @@ async function startTest(rework=false) {
 
 	try {
 		const params = new URLSearchParams();
-		selectedBlocks.forEach(blockId => {
+		sessionBlocks.forEach(blockId => {
 			params.append('block_id', blockId);
 		});
 
-		params.append('num_of_questions', numOfQuestions)
+		params.append('num_of_questions', numOfQuestions);
 
-		if (timeout != 'auto')
+		if (timeout !== 'auto')
 		{
 		    params.append('timeout', timeout)
 		}
@@ -740,7 +754,7 @@ async function startTest(rework=false) {
 			},
 			body: JSON.stringify({
                 profile_id: currentProfile && currentProfile.id ? currentProfile.id : null,
-                work_on_mistakes: rework
+                work_on_mistakes: workOnMistakes
 			})
 		});
 
