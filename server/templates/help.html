@@ -58,9 +58,6 @@
             font-size: 1.2rem;
             padding: 15px 30px;
         }
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 15px; }
-        }
     </style>
     <script>
         window.MathJax = {
@@ -92,19 +89,17 @@
 <body>
     <div class="container">
         <header>
-            <div class="logo">Математические тесты</div>
-            <div class="menu-container">
-                <nav class="nav-links" style="display: flex; gap: 20px; align-items: center;">
-                    <a href="/" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Главная</a>
-                    <a href="/help" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Инструкция</a>
-                    <a href="https://github.com/kasmirov/math_test" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">GitHub</a>
-                    <a href="https://github.com/kasmirov/math_test/issues" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Сообщить о проблеме</a>
-                    <a href="/app" class="btn" style="margin: 0;">Начать тест</a>
-                    <div class="user-menu-container" id="newMenu">
-                        <!-- Виджет будет вставлен здесь -->
-                    </div>
-                </nav>
-            </div>
+            <div class="logo" id="pageTitle">Математические тесты</div>
+            <nav class="main-nav">
+                <a href="/">Главная</a>
+                <a href="/help">Инструкция</a>
+                <a href="https://github.com/kasmirov/math_test" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/kasmirov/math_test/issues" target="_blank" rel="noopener">Сообщить о проблеме</a>
+                <a href="/app" class="btn">Начать тест</a>
+                <div class="user-menu-container" id="newMenu">
+                    <!-- Виджет будет вставлен здесь -->
+                </div>
+            </nav>
         </header>
 
         <main>

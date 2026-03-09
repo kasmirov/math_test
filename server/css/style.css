@@ -16,15 +16,46 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background-color: #f5f5f5;
     color: #333;
+}
+
+main {
+    flex: 1 0 auto;
+    margin-top: 0;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 5px;
+    width: 100%;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.container2 {
+    margin: unset;
+	margin-bottom: 0px;
+    padding: 5px 15px 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: unset;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
 }
 
 /* Header Styles */
@@ -32,18 +63,48 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #ddd;
-    margin-bottom: 5px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+/* Nav bar */
+.main-nav {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.main-nav a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.main-nav a:hover {
+    text-decoration: underline;
+}
+
+.main-nav .btn {
+    margin: 0;
+    padding: 8px 16px;
+    color: var(--light-color);
+}
+
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 /* Footer Styles */
 footer {
+    flex-shrink: 0;
     background-color: var(--footer-color);
     color: var(--primary-color);
     padding: 10px 0;
-    margin-top: 20px;
-    margin-bottom: 0px;
     text-align: center;
     border-top: 1px solid #444;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -75,14 +136,6 @@ a:hover {
 }
 
 .user-menu-container {
-    display: flex;
-    justify-content: flex-end;
-    align-items: right;
-
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.menu-container {
     display: flex;
     justify-content: flex-end;
     align-items: right;
