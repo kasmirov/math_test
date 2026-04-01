@@ -7,6 +7,7 @@ from generators.generator_comparison import ComparisonGenerator
 from generators.generator_conversion import ConversionGenerator
 from generators.generator_div import DivisionGenerator
 from generators.generator_equation import EquationGenerator
+from generators.generator_fraction_geom import FractionGeneratorGeom
 from generators.generator_mul import MultiplicationGenerator
 from generators.generator_priority import PriorityOperationsGenerator
 from generators.generator_priority_3rd_grade import PriorityOperationsGenerator3rd, PriorityOperationsGenerator4th
@@ -44,7 +45,8 @@ def explore_static_generators(latex=False, has_text_mode=None):
             GeometryFigurePropertiesGenerator(),
             FractionGenerator(),
             ClockGeneratorSimple(),
-            ClockGeneratorHard()
+            ClockGeneratorHard(),
+            FractionGeneratorGeom()
         ] if has_text_mode is None or gen.has_text_mode() == has_text_mode
     }
 
