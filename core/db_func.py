@@ -456,6 +456,65 @@ def get_mistakes(profile_id, problem_key) -> List[Dict]:
         return mistakes_data
 
 
+def get_session_history(profile_id, problem_key, date_start=None, date_end=None):
+    """
+    Получить список сессий для указанного problem_key за период
+    Возвращает список словарей:
+    [
+        {
+            'session_id': int,
+            'session_start': str (ISO datetime),
+            'correct_count': int,
+            'timeout_count': int,
+            'incorrect_count': int
+        },
+        ...
+    ]
+    """
+    if not profile_id:
+        return []
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # Базовый запрос: группируем по session_id, считаем статусы
+        query = """
+            SELECT 
+                session_id,
+                MIN(question_start_time) as session_start,
+                SUM(CASE WHEN is_correct = 1 AND is_timeout = 0 THEN 1 ELSE 0 END) as correct_count,
+                SUM(CASE WHEN is_timeout = 1 THEN 1 ELSE 0 END) as timeout_count,
+                SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) as incorrect_count
+            FROM history
+            WHERE profile_id = ? AND problem_key = ?
+        """
+        params = [profile_id, problem_key]
+
+        if date_start:
+            query += " AND question_start_time >= ?"
+            params.append(date_start.isoformat())
+        if date_end:
+            query += " AND question_start_time <= ?"
+            params.append(date_end.isoformat())
+
+        query += " GROUP BY session_id ORDER BY session_start DESC"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        sessions = []
+        for row in rows:
+            sessions.append({
+                'session_id': row['session_id'],
+                'session_start': row['session_start'],
+                'correct_count': row['correct_count'],
+                'timeout_count': row['timeout_count'],
+                'incorrect_count': row['incorrect_count']
+            })
+
+        return sessions
+
+
 def get_anonymous_user():
     return get_user_id_by_email(ANONYMOUS)
 

@@ -104,11 +104,11 @@ footer {
     flex-shrink: 0;
     background-color: var(--footer-color);
     color: var(--primary-color);
-    padding: 10px 0;
+    padding: 5px 0;
     text-align: center;
     border-top: 1px solid #444;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 footer a {
@@ -557,9 +557,45 @@ a:hover {
 }
 
 .stat-value {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: bold;
     margin-bottom: 10px;
+    margin-top: 5px;
+}
+
+.session-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+}
+
+.session-date {
+    min-width: 120px;
+    font-weight: 500;
+}
+
+.session-correct {
+    color: var(--success-color);
+}
+
+.session-timeout {
+    color: var(--warning-color);
+}
+
+.session-incorrect {
+    color: var(--danger-color);
+}
+
+.block-header {
+    user-select: none;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.block-header:hover {
+    opacity: 0.8;
 }
 
 .progress-bar {
@@ -592,13 +628,127 @@ a:hover {
 }
 
 .test-completion {
-    text-align: center;
-    padding: 30px;
+    text-align: left;
+    margin: 0 auto;
 }
 
 .completion-stats {
-    font-size: 18px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 16px;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-weight: 500;
+    color: #334155;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+/* Блок сравнения */
+.comparison-block {
     margin: 20px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.comparison-header:hover {
+    background: #e2e8f0;
+}
+
+.expand-icon {
+    font-size: 14px;
+    color: #475569;
+}
+
+.comparison-title {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.comparison-content {
+    padding: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.comparison-section {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.comparison-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.section-name {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.section-deltas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 4px;
+}
+
+.delta-item {
+    font-size: 0.9em;
+    padding: 4px 8px;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.delta-positive {
+    color: #10b981;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+}
+
+.delta-negative {
+    color: #ef4444;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.completion-actions {
+    text-align: center;
+    margin-top: 24px;
 }
 
 .session-restore-dialog {

@@ -17,7 +17,8 @@ from core.core import get_question_blocks, explore_static_generators, generate_t
 from core.db_func import create_session, get_anonymous_profile, get_user_id_by_email, \
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
-    get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection
+    get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection, \
+    get_session_history
 from core.units import Units
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -833,6 +834,7 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
 
     current_results = get_statistics(profile_id, session_uuid=session_uuid)
     problems = current_results.keys()
+    total_time = 0
 
     if is_authenticated:
         # Get combined stats for last 3 tests + 1 current
@@ -841,7 +843,6 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
                                           session_uuid=session_uuid,
                                           exclude_session_uuid=True)
         section_comparison = {}
-        total_time = 0
 
         for problem in problems:
             if problem == 'summary':
@@ -857,6 +858,7 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
                 avg_time_sec_delta = current_problem_stats["avg_time_sec"] - previous_problem_stats["avg_time_sec"]
 
                 section_comparison[problem] = {
+                    "block_name": get_generator(problem).get_section_name(),
                     "correct_delta": correct_delta,
                     "incorrect_delta": incorrect_delta,
                     "timeout_delta": timeout_delta,
@@ -878,7 +880,9 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
         "correct_answers": current_results["summary"]["correct_answers"],
         "incorrect_answers": current_results["summary"]["incorrect_answers"],
         "timeout_answers": current_results["summary"]["timeout_answers"],
-        "correct_percent": current_results["summary"]["correct_percent"]
+        "correct_percent": current_results["summary"]["correct_percent"],
+        #"avg_time_sec": round(total_time / current_results["summary"]["total_questions"], 1),
+        "total_time": round(total_time, 1),
     })
 
 
@@ -951,6 +955,48 @@ def get_unsolved():
     for block in filtered_blocks:
         block["count"] = unsolved_dict[block["section_key"]]
     return jsonify(filtered_blocks)
+
+@app.route('/api/history', methods=['POST'])
+@optional_jwt_required
+def get_history(is_authenticated=False, user_email=None):
+    """Получить список сессий по выбранному блоку и периоду"""
+    # Получаем данные пользователя
+    if is_authenticated:
+        _, profile_id = get_creds_from_email(user_email)
+    else:
+        profile_id = get_anonymous_profile()
+
+    # Получаем параметры запроса
+    data = request.get_json()
+    block_id = data.get('block_id')
+    date_from = data.get('date_from')
+    date_to = data.get('date_to')
+
+    if block_id is None:
+        return jsonify({"error": "block_id is required"}), 400
+
+    # Получаем limits для текущего профиля
+    limits = get_profile_limits(profile_id)
+
+    # Находим section_key по block_id
+    question_blocks = get_question_blocks(limits)
+    section_key = None
+    for block in question_blocks:
+        if block['id'] == block_id:
+            section_key = block['section_key']
+            break
+
+    if not section_key:
+        return jsonify({"error": "Block not found"}), 404
+
+    # Преобразуем даты
+    date_start = datetime.strptime(f"{date_from} 00:00", '%Y-%m-%d %H:%M') if date_from else None
+    date_end = datetime.strptime(f"{date_to} 23:59", '%Y-%m-%d %H:%M') if date_to else None
+
+    # Получаем историю сессий из БД
+    sessions = get_session_history(profile_id, section_key, date_start, date_end)
+
+    return jsonify(sessions)
 
 # Статические файлы
 @app.route('/')
