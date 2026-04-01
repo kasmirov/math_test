@@ -1033,7 +1033,7 @@ function updateAnswersHistory() {
         const totalCount = blockAnswers.length;
 
         const blockHeader = document.createElement('div');
-        blockHeader.innerHTML = `<h4>${blockName} (✓${correctCount} ⏰${correctTimeoutCount} ✗${incorrectCount})</h4>`;
+        blockHeader.innerHTML = `<h4>${blockName} (✅${correctCount} ⏰${correctTimeoutCount} ❌${incorrectCount})</h4>`;
         answersHistoryContainer.appendChild(blockHeader);
 
         blockAnswers.forEach(answer => {
@@ -1083,41 +1083,118 @@ function updateAnswersHistory() {
 }
 
 function showTestCompletion(results = null) {
-	const correctAnswers = answersHistory.filter(a => a.isCorrect && !a.isTimeout).length;
-	const correctTimeoutAnswers = answersHistory.filter(a => a.isCorrect && a.isTimeout).length;
-	const totalAnswers = answersHistory.length;
-	const percentage = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+    const correctAnswers = answersHistory.filter(a => a.isCorrect && !a.isTimeout).length;
+    const correctTimeoutAnswers = answersHistory.filter(a => a.isCorrect && a.isTimeout).length;
+    const totalAnswers = answersHistory.length;
+    const percentage = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
 
-	let resultsHtml = `
-		<div class="test-completion">
-			<h3>Тест завершен!</h3>
-			<div class="completion-stats">
-				<p>Правильных ответов: ${correctAnswers} из ${totalAnswers}</p>
-				<p>Правильных ответов с истекшим временем: ${correctTimeoutAnswers}</p>
-				<p>Процент правильных: ${percentage}%</p>
-	`;
+    // Основной контейнер
+    let resultsHtml = `
+        <div class="test-completion">
+            <h3>✨ Тест завершен! ✨</h3>
+            <div class="completion-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Правильных ответов:</span>
+                    <span class="stat-value">${correctAnswers} из ${totalAnswers} (${percentage}%)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Правильных с таймаутом:</span>
+                    <span class="stat-value">${correctTimeoutAnswers}</span>
+                </div>
+    `;
 
-	if (results) {
-		resultsHtml += `
-				<p>Общее время: ${results.total_time || 'N/A'}</p>
-				<p>Среднее время на вопрос: ${results.avg_time_sec || 'N/A'}</p>
-		`;
-	}
+    if (results) {
+        resultsHtml += `
+                <div class="stat-item">
+                    <span class="stat-label">Общее время:</span>
+                    <span class="stat-value">${results.total_time || 'n/a'} с</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Среднее время на вопрос:</span>
+                    <span class="stat-value">${results.avg_time_sec || 'n/a'} с</span>
+                </div>
+        `;
+    }
+
+    resultsHtml += `</div>`;
+
+    // Блок сравнения с предыдущими сессиями (если есть данные)
+    if (results && results.sections && Object.keys(results.sections).length > 0) {
+        resultsHtml += `
+            <div class="comparison-block">
+                <div class="comparison-header">
+                    <span class="expand-icon">▶</span>
+                    <span class="comparison-title">Сравнение ответов с предыдущими 3 сессиями</span>
+                </div>
+                <div class="comparison-content" style="display: none;">
+        `;
+
+        for (let sectionKey in results.sections) {
+            if (results.sections.hasOwnProperty(sectionKey)) {
+                const data = results.sections[sectionKey];
+                const correctDeltaClass = data.correct_delta >= 0 ? 'delta-positive' : 'delta-negative';
+                const timeoutDeltaClass = data.timeout_delta >= 0 ? 'delta-positive' : 'delta-negative';
+                const incorrectDeltaClass = data.incorrect_delta <= 0 ? 'delta-positive' : 'delta-negative';
+                const timeDeltaClass = data.avg_time_sec_delta <= 0 ? 'delta-positive' : 'delta-negative'; // уменьшение времени — хорошо
+
+                resultsHtml += `
+                    <div class="comparison-section">
+                        <div class="section-name">${data.block_name}</div>
+                        <div class="section-deltas">
+                            <div class="delta-item ${correctDeltaClass}">
+                                ✅ Правильно: ${data.correct_delta >= 0 ? '+' : ''}${data.correct_delta}%
+                            </div>
+                            <div class="delta-item ${timeoutDeltaClass}">
+                                ⏰ Таймаут: ${data.timeout_delta >= 0 ? '+' : ''}${data.timeout_delta}%
+                            </div>
+                            <div class="delta-item ${incorrectDeltaClass}">
+                                ❌ Неправильно: ${data.incorrect_delta >= 0 ? '+' : ''}${data.incorrect_delta}%
+                            </div>
+                            <div class="delta-item ${timeDeltaClass}">
+                                ⏱️ Время ответа: ${data.avg_time_sec_delta >= 0 ? '+' : ''}${data.avg_time_sec_delta.toFixed(2)} с
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        resultsHtml += `
+                </div>
+            </div>
+        `;
+    }
 
 	resultsHtml += `
 			</div>
-			<button class="btn" onclick="showMainScreen()">Вернуться в начало</button>
+			<button class="btn" style="margin: 20px 0px;" onclick="showMainScreen()">Вернуться в начало</button>
 		</div>
 	`;
 
-	questionText.innerHTML = resultsHtml;
-	answerForm.style.display = 'none';
-	resultMessage.style.display = 'none';
-	renderMathJax(questionText);
-	questionHint.style.display = 'none';
+    questionText.innerHTML = resultsHtml;
+    answerForm.style.display = 'none';
+    resultMessage.style.display = 'none';
+    renderMathJax(questionText);
+    questionHint.style.display = 'none';
 
-	// Очищаем данные сессии после завершения теста
-	clearSession();
+    // Обработчик для сворачивания/разворачивания блока сравнения
+    const comparisonHeader = document.querySelector('.comparison-header');
+    if (comparisonHeader) {
+        comparisonHeader.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            const icon = this.querySelector('.expand-icon');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        });
+    }
+
+    // Очищаем данные сессии после завершения теста
+    clearSession();
 }
 
 async function loadStatistics() {
@@ -1161,27 +1238,139 @@ async function loadStatistics() {
 }
 
 function renderStatistics(stats) {
-	statsResults.innerHTML = '';
+    statsResults.innerHTML = '';
 
-	if (stats.length === 0) {
-		statsResults.innerHTML = '<p>Нет данных для отображения</p>';
-		return;
-	}
+    if (stats.length === 0) {
+        statsResults.innerHTML = '<p>Нет данных для отображения</p>';
+        return;
+    }
 
-	stats.forEach(stat => {
-		const statCard = document.createElement('div');
-		statCard.className = 'stat-card';
-		statCard.innerHTML = `
-			<h3>${stat.block_name}</h3>
-			<div class="stat-value">${stat.percentage}%</div>
-			<div class="progress-bar">
-				<div class="progress-fill" style="width: ${stat.percentage}%"></div>
-			</div>
-			<div>Правильных ответов: ${stat.correct_answers} из ${stat.total_answers}</div>
-			<div>Правильных с таймаутом: ${stat.correct_timeout_answers || 0}</div>
-		`;
-		statsResults.appendChild(statCard);
-	});
+    stats.forEach(stat => {
+        const statCard = document.createElement('div');
+        statCard.className = 'stat-card';
+
+        // Заголовок с иконкой
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'block-header';
+        headerDiv.style.cursor = 'pointer';
+        headerDiv.style.display = 'flex';
+        headerDiv.style.alignItems = 'center';
+        headerDiv.style.gap = '4px';
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'expand-icon';
+        iconSpan.textContent = '▶'; // начальное состояние — свернуто
+        iconSpan.style.fontSize = '14px';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = stat.block_name;
+        titleSpan.style.fontWeight = 'bold';
+
+        headerDiv.appendChild(iconSpan);
+        headerDiv.appendChild(titleSpan);
+
+        // Контейнер для истории (изначально скрыт)
+        const historyContainer = document.createElement('div');
+        historyContainer.className = 'session-history';
+        historyContainer.style.display = 'none';
+        historyContainer.style.marginTop = '10px';
+        historyContainer.style.fontSize = '0.9em';
+        historyContainer.style.borderLeft = '2px solid #ddd';
+        historyContainer.style.paddingLeft = '10px';
+
+        // Остальное содержимое (проценты, прогресс-бар и т.д.)
+        const statsContent = document.createElement('div');
+        statsContent.className = 'stats-content';
+        statsContent.innerHTML = `
+            <div class="stat-value">${stat.percentage}%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${stat.percentage}%"></div>
+            </div>
+            <div>Правильных ответов: ${stat.correct_answers} из ${stat.total_answers}</div>
+            <div>Правильных с таймаутом: ${stat.correct_timeout_answers || 0}</div>
+        `;
+
+        statCard.appendChild(headerDiv);
+        statCard.appendChild(historyContainer);
+        statCard.appendChild(statsContent);
+        statsResults.appendChild(statCard);
+
+        // Обработчик клика по заголовку
+        headerDiv.addEventListener('click', async () => {
+            const isExpanded = historyContainer.style.display !== 'none';
+            if (isExpanded) {
+                // Сворачиваем
+                historyContainer.style.display = 'none';
+                iconSpan.textContent = '▶';
+            } else {
+                // Разворачиваем и загружаем данные
+                historyContainer.style.display = 'block';
+                iconSpan.textContent = '▼';
+                await loadSessionHistory(stat.block_id, historyContainer);
+            }
+        });
+    });
+}
+
+async function loadSessionHistory(blockId, container) {
+    // Показываем индикатор загрузки
+    container.innerHTML = '<div class="loading">Загрузка...</div>';
+
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/history`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                block_id: blockId,
+                date_from: dateFrom,
+                date_to: dateTo,
+				profile_id: currentProfile && currentProfile.id ? currentProfile.id : null
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки истории: ${response.status}`);
+        }
+
+        const sessions = await response.json();
+
+        if (sessions.length === 0) {
+            container.innerHTML = '<p>Нет сессий за выбранный период</p>';
+            return;
+        }
+
+        // Формируем список
+        const list = document.createElement('div');
+        list.className = 'session-list';
+
+        sessions.forEach(session => {
+            const sessionRow = document.createElement('div');
+            sessionRow.className = 'session-row';
+            // Форматируем дату
+            const date = new Date(session.session_start);
+            const formattedDate = date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+
+            sessionRow.innerHTML = `
+                <span class="session-date">${formattedDate}</span>
+                <span class="session-correct">✓ ${session.correct_count}</span>
+                <span class="session-timeout">⏰ ${session.timeout_count}</span>
+                <span class="session-incorrect">✗ ${session.incorrect_count}</span>
+            `;
+            list.appendChild(sessionRow);
+        });
+
+        container.innerHTML = '';
+        container.appendChild(list);
+
+    } catch (error) {
+        console.error('Ошибка загрузки истории:', error);
+        container.innerHTML = `<div class="error-message">${error.message}</div>`;
+    }
 }
 
 function renderMathJax(element) {
