@@ -1414,6 +1414,9 @@ function clearSession() {
 	localStorage.removeItem('activeTestSession');
 	currentSessionId = null;
 
+	selectedTags = [];
+	selectedBlocks = [];
+
 	// Скрываем уведомление
     hideSessionNotification();
 }
