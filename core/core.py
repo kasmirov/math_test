@@ -11,6 +11,7 @@ from generators.generator_fraction_geom import FractionGeneratorGeom
 from generators.generator_mul import MultiplicationGenerator
 from generators.generator_priority import PriorityOperationsGenerator
 from generators.generator_priority_3rd_grade import PriorityOperationsGenerator3rd, PriorityOperationsGenerator4th
+from generators.generator_time_arithmetic import TimeArithmeticGenerator
 from generators.generator_yaml import YamlProblemGenerator
 from generators.generator_geom_fig_props import GeometryFigurePropertiesGenerator
 from generators.generator_fraction import FractionGenerator
@@ -46,7 +47,8 @@ def explore_static_generators(latex=False, has_text_mode=None):
             FractionGenerator(),
             ClockGeneratorSimple(),
             ClockGeneratorHard(),
-            FractionGeneratorGeom()
+            FractionGeneratorGeom(),
+            TimeArithmeticGenerator()
         ] if has_text_mode is None or gen.has_text_mode() == has_text_mode
     }
 
