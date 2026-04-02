@@ -852,10 +852,10 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
 
             if problem in previous_results.keys():
                 previous_problem_stats = previous_results[problem]
-                correct_delta = current_problem_stats["correct_percent"] - previous_problem_stats["correct_percent"]
-                incorrect_delta = current_problem_stats["incorrect_percent"] - previous_problem_stats["correct_percent"]
-                timeout_delta = current_problem_stats["timeout_percent"] - previous_problem_stats["timeout_percent"]
-                avg_time_sec_delta = current_problem_stats["avg_time_sec"] - previous_problem_stats["avg_time_sec"]
+                correct_delta = round(current_problem_stats["correct_percent"] - previous_problem_stats["correct_percent"], 1)
+                incorrect_delta = round(current_problem_stats["incorrect_percent"] - previous_problem_stats["incorrect_percent"], 1)
+                timeout_delta = round(current_problem_stats["timeout_percent"] - previous_problem_stats["timeout_percent"], 1)
+                avg_time_sec_delta = round(current_problem_stats["avg_time_sec"] - previous_problem_stats["avg_time_sec"], 1)
 
                 section_comparison[problem] = {
                     "block_name": get_generator(problem).get_section_name(),
