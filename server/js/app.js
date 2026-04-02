@@ -1033,7 +1033,7 @@ function updateAnswersHistory() {
         const totalCount = blockAnswers.length;
 
         const blockHeader = document.createElement('div');
-        blockHeader.innerHTML = `<h4>${blockName} (✅${correctCount} ⏰${correctTimeoutCount} ❌${incorrectCount})</h4>`;
+        blockHeader.innerHTML = `<h4>${blockName} <br>✅${correctCount} ⏰${correctTimeoutCount} ❌${incorrectCount}</h4>`;
         answersHistoryContainer.appendChild(blockHeader);
 
         blockAnswers.forEach(answer => {
@@ -1132,10 +1132,18 @@ function showTestCompletion(results = null) {
         for (let sectionKey in results.sections) {
             if (results.sections.hasOwnProperty(sectionKey)) {
                 const data = results.sections[sectionKey];
-                const correctDeltaClass = data.correct_delta >= 0 ? 'delta-positive' : 'delta-negative';
-                const timeoutDeltaClass = data.timeout_delta >= 0 ? 'delta-positive' : 'delta-negative';
-                const incorrectDeltaClass = data.incorrect_delta <= 0 ? 'delta-positive' : 'delta-negative';
-                const timeDeltaClass = data.avg_time_sec_delta <= 0 ? 'delta-positive' : 'delta-negative'; // уменьшение времени — хорошо
+                const correctDeltaClass = data.correct_delta > 0 ? 'delta-positive'
+                       : data.correct_delta === 0 ? 'delta-neutral'
+                       : 'delta-negative';
+                const timeoutDeltaClass = data.timeout_delta < 0 ? 'delta-positive'
+                       : data.timeout_delta === 0 ? 'delta-neutral'
+                       : 'delta-negative';
+                const incorrectDeltaClass = data.incorrect_delta < 0 ? 'delta-positive'
+                       : data.incorrect_delta === 0 ? 'delta-neutral'
+                       : 'delta-negative';
+                const timeDeltaClass = data.avg_time_sec_delta < 0 ? 'delta-positive'
+                       : data.avg_time_sec_delta === 0 ? 'delta-neutral'
+                       : 'delta-negative';
 
                 resultsHtml += `
                     <div class="comparison-section">

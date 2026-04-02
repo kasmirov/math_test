@@ -740,6 +740,11 @@ a:hover {
     background: #ecfdf5;
 }
 
+.delta-neutral {
+    color: #878787;
+    border-color: #d2d0d0;
+}
+
 .delta-negative {
     color: #ef4444;
     border-color: #fecaca;
