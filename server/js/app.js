@@ -178,7 +178,7 @@ function setupStatsFilters() {
 	statsFilters.appendChild(blockGroup);
 
 	// Заполняем фильтр блоками
-	populateBlockFilter();
+	fillStatsBlockDropBox();
 
 	// Добавляем обработчики изменений
 	document.getElementById('dateFrom').addEventListener('change', function() {
@@ -200,7 +200,8 @@ function setupStatsFilters() {
 	});
 }
 
-function populateBlockFilter() {
+// Заполнение дроп-бокса 'Блок вопросов:' раздела статистика
+function fillStatsBlockDropBox() {
 	const blockFilter = document.getElementById('blockFilter');
 	if (!blockFilter) return;
 
@@ -289,11 +290,11 @@ function showBlocksScreen() {
 	filtersContainer.style.display = 'block';
 
 	// восстанавливаем selectedBlocks из визуального состояния при первом отображении экрана
-	loadBlocks();
-	syncSelectedBlocksFromUI();
+	//syncSelectedBlocksFromUI();
 
 	// Обновляем фильтры
 	renderFilters();
+	filterAndRenderBlocks();
 
     // Показываем уведомление о сессии, если она есть
     checkActiveSession();
@@ -349,8 +350,8 @@ async function showWorkOnErrorsScreen() {
 	startTestBtn.textContent = 'Начать работу над ошибками';
 }
 
+// Обновление списка id выбранных карточек блоков
 function syncSelectedBlocksFromUI() {
-	// Получаем все карточки блоков
 	const blockCards = blocksList.querySelectorAll('.block-card');
 	const newSelectedBlocks = [];
 
@@ -435,34 +436,13 @@ async function showStatsScreen() {
 		await loadBlocks();
 	}
 
+    fillStatsBlockDropBox();
 	loadStatistics();
 }
 
-// TODO KILLME
-async function showStatsScreenForErrors() {
-	if (!currentUser) {
-		alert('Пожалуйста, выберите пользователя для работы над ошибками');
-		return;
-	}
-
-	mainScreen.style.display = 'none';
-	blocksScreen.style.display = 'none';
-	testScreen.style.display = 'none';
-	statsScreen.style.display = 'block';
-
-	// Показываем кнопку "В начало"
-	homeBtn.style.display = 'flex';
-
-	// Обновляем заголовок страницы
-	pageTitle.textContent = 'Работа над ошибками';
-
-	// Загружаем блоки по которым были ошибки
-	await loadWorkOnMistakesBlocks();
-
-	loadStatistics();
-}
-
+// Загрузка блоков заданий с сервера
 async function loadBlocks() {
+    // TODO если лимиты профиля менялись, то надо перезагрузить блоки
 	// Если блоки уже загружаются, не делаем повторный запрос
 	if (blocksList.innerHTML.includes('loading') && !blocksLoaded) {
 		return;
@@ -489,10 +469,6 @@ async function loadBlocks() {
 		availableTags = data.available_tags;
 		blocksLoaded = true;
 
-		//renderFilters();
-		renderBlocks(allBlocks);
-		populateBlockFilter();
-
 	} catch (error) {
 		console.error('Ошибка при загрузке блоков:', error);
 		blocksList.innerHTML = `
@@ -503,6 +479,7 @@ async function loadBlocks() {
 	}
 }
 
+// Отображение доступных фильтров, выделение цветом выбранного фильтра
 function renderFilters() {
 	filtersList.innerHTML = '';
 
@@ -518,7 +495,6 @@ function renderFilters() {
 		filterBtn.className = 'filter-btn';
 		filterBtn.textContent = tag;
 		filterBtn.dataset.tag = tag;
-
 		if (selectedTags.includes(tag)) {
 			filterBtn.classList.add('active');
 		}
@@ -544,6 +520,7 @@ function toggleTagFilter(tag) {
 	filterAndRenderBlocks();
 }
 
+// Отображение отфильтрованных блоков
 function filterAndRenderBlocks() {
 	let filteredBlocks = allBlocks;
 
@@ -1203,6 +1180,9 @@ function showTestCompletion(results = null) {
 
     // Очищаем данные сессии после завершения теста
     clearSession();
+
+    // Обрабатываем состояние фильтров по завершении теста
+    updateFilterSelection();
 }
 
 async function loadStatistics() {
@@ -1414,11 +1394,14 @@ function clearSession() {
 	localStorage.removeItem('activeTestSession');
 	currentSessionId = null;
 
-	selectedTags = [];
-	selectedBlocks = [];
-
 	// Скрываем уведомление
     hideSessionNotification();
+}
+
+function updateFilterSelection() {
+    // Uncomment to clear filter settings
+	selectedTags = [];
+	selectedBlocks = [];
 }
 
 function restoreActiveSession() {
