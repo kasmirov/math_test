@@ -12,13 +12,14 @@ let selectedTags = [];
 let allBlocks = [];
 let workOnMistakesBlocks = [];
 let blocksLoaded = false;
-let selectedBlocks = [];            // Выбранные блоки в тесте
-let selectedWorkOnMistakesBlocks = [];    // Выбранные блоки в работе над ошибками
+let selectedBlocks = [];                // Выбранные блоки в тесте
+let selectedWorkOnMistakesBlocks = [];  // Выбранные блоки в работе над ошибками
 
 // Default settings
 let timeout = 'auto';               // По умолчанию auto
-let numOfQuestions = 3;
+let numOfQuestions = 3;             // Количество вопросов по умолчанию и в анонимном режиме
 let autoSubmitOnTimeout = true;     // По умолчанию автоотправка включена
+let clearAfterTest = false;         // Очищать выбранные блоки/фильтры после теста
 
 // API базовый URL
 const API_BASE_URL = '/api';
@@ -32,6 +33,7 @@ const settingsPanel = document.getElementById('settingsPanel');
 const autoSubmitOnTimeoutCheckbox = document.getElementById('autoSubmitOnTimeout');
 const timeoutCombobox = document.getElementById('timeoutSelector');
 const questionsCombobox = document.getElementById('numQuestionsSelector');
+const clearAfterTestCheckbox = document.getElementById('clearAfterTestCheckbox');
 
 const homeBtn = document.getElementById('homeBtn');
 const pageTitle = document.getElementById('pageTitle');
@@ -115,6 +117,11 @@ function setupEventListeners() {
 		numOfQuestions = this.value;
 		saveSettings();
 	});
+
+    clearAfterTestCheckbox.addEventListener('change', function() {
+        clearAfterTest = this.checked;
+        saveSettings();
+    });
 
 	// Экран выбора блоков
 	backFromBlocksBtn.addEventListener('click', showMainScreen);
@@ -237,6 +244,9 @@ function loadSettings() {
 
 		numOfQuestions = settings.numOfQuestions !== undefined ? settings.numOfQuestions : 3;
 		questionsCombobox.value = numOfQuestions;
+
+		clearAfterTest = settings.clearAfterTest !== undefined ? settings.clearAfterTest : false;
+        clearAfterTestCheckbox.checked = clearAfterTest;
 	}
 }
 
@@ -248,7 +258,8 @@ function saveSettings() {
 	const settings = {
 		autoSubmitOnTimeout: autoSubmitOnTimeout,
 		timeout: timeout,
-		numOfQuestions: numOfQuestions
+		numOfQuestions: numOfQuestions,
+		clearAfterTest: clearAfterTest
 	};
 	const storageKey = `testSettings_${currentUser.id}_${currentProfile.id}`;
 	localStorage.setItem(storageKey, JSON.stringify(settings));
@@ -258,6 +269,31 @@ function toggleSettings() {
 	settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
 }
 
+function saveBlocksState() {
+    if (!currentUser || !currentUser.id || !currentProfile || !currentProfile.id) return;
+    const key = `testBlocksState_${currentUser.id}_${currentProfile.id}`;
+    const state = { selectedTags, selectedBlocks };
+    localStorage.setItem(key, JSON.stringify(state));
+}
+
+function loadBlocksState() {
+    if (!currentUser || !currentUser.id || !currentProfile || !currentProfile.id) return;
+    const key = `testBlocksState_${currentUser.id}_${currentProfile.id}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+        const state = JSON.parse(saved);
+        selectedTags = state.selectedTags || [];
+        selectedBlocks = state.selectedBlocks || [];
+    } else {
+        selectedTags = [];
+        selectedBlocks = [];
+    }
+    // Если открыт экран выбора блоков – обновляем отображение
+    if (blocksScreen.style.display === 'block') {
+        renderFilters();
+        filterAndRenderBlocks();
+    }
+}
 
 function handleBeforeUnload(e) {
 
@@ -440,13 +476,12 @@ async function showStatsScreen() {
 	loadStatistics();
 }
 
+// TODO если лимиты профиля менялись, то надо перезагрузить блоки
 // Загрузка блоков заданий с сервера
-async function loadBlocks() {
-    // TODO если лимиты профиля менялись, то надо перезагрузить блоки
-	// Если блоки уже загружаются, не делаем повторный запрос
-	if (blocksList.innerHTML.includes('loading') && !blocksLoaded) {
-		return;
-	}
+async function loadBlocks(forceReload = false) {
+    // Если блоки уже загружаются, не делаем повторный запрос
+    if (!forceReload && blocksLoaded) return;
+    if (forceReload) blocksLoaded = false;
 
 	blocksList.innerHTML = '<div class="loading">Загрузка блоков вопросов...</div>';
 
@@ -518,19 +553,17 @@ function toggleTagFilter(tag) {
 
 	renderFilters();
 	filterAndRenderBlocks();
+	saveBlocksState();
 }
 
 // Отображение отфильтрованных блоков
 function filterAndRenderBlocks() {
-	let filteredBlocks = allBlocks;
-
-	if (selectedTags.length > 0) {
-		filteredBlocks = allBlocks.filter(block =>
-			selectedTags.some(tag => block.tags.includes(tag))
-		);
-	}
-
-	renderBlocks(filteredBlocks);
+    let filteredBlocks = allBlocks.filter(block => {
+        if (selectedBlocks.includes(block.id)) return true; // выбранные всегда видны
+        if (selectedTags.length === 0) return true;
+        return selectedTags.some(tag => block.tags.includes(tag));
+    });
+    renderBlocks(filteredBlocks);
 }
 
 function renderBlocks(blocks) {
@@ -583,12 +616,10 @@ function toggleBlockSelection(blockId) {
 	} else {
 		selectedBlocks.splice(index, 1);
 	}
+	saveBlocksState();
 
-	// Обновляем отображение выбранных блоков
-	renderBlocks(allBlocks.filter(block =>
-		selectedTags.length === 0 ||
-		selectedTags.some(tag => block.tags.includes(tag))
-	));
+    // Используем общую логику фильтрации, которая всегда показывает выбранные блоки
+    filterAndRenderBlocks();
 }
 
 async function loadWorkOnMistakesBlocks() {
@@ -1399,9 +1430,15 @@ function clearSession() {
 }
 
 function updateFilterSelection() {
-    // Uncomment to clear filter settings
-	selectedTags = [];
-	selectedBlocks = [];
+    if (clearAfterTest) {
+        selectedTags = [];
+        selectedBlocks = [];
+        saveBlocksState();
+        if (blocksScreen.style.display === 'block') {
+            renderFilters();
+            filterAndRenderBlocks();
+        }
+    }
 }
 
 function restoreActiveSession() {
@@ -1533,8 +1570,10 @@ const accWidget = AccountWidget.getInstance({
         if (currentProfile) {
             accountWidget.currentProfile = currentProfile;
             accountWidget.updateProfilesDisplay();
-            loadBlocks();
         }
+
+        // Загружаем блоки для выбранного профиля
+        loadBlocks(true).then(() => loadBlocksState());
     },
 
     onLogout: () => {
@@ -1569,14 +1608,14 @@ const accWidget = AccountWidget.getInstance({
 
         updateAppInfo();
 
-        // Загружаем блоки для выбранного профиля
-        loadBlocks();
-
         // Если перешли в другой профиль надо чекнуть сессию
         checkActiveSession();
 
         // Применяем настройки профиля
         applyProfileSettings(profile.settings);
+
+        // Загружаем блоки для выбранного профиля
+        loadBlocks(true).then(() => loadBlocksState());
     },
 
     onSettingsClick: () => {
@@ -1602,6 +1641,9 @@ const accWidget = AccountWidget.getInstance({
             accountWidget.currentProfile = currentProfile;
             accountWidget.updateProfilesDisplay();
         }
+
+        // Загружаем блоки для выбранного профиля
+        loadBlocks(true).then(() => loadBlocksState());
     }
 });
 
