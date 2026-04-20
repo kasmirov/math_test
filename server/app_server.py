@@ -774,13 +774,13 @@ def submit_answer(session_uuid, is_authenticated=False, user_email=None):
     if 'answer' not in data:
         return jsonify({"error": "Ответ не предоставлен"}), 400
 
-    user_input = data['answer'].lower()
+    user_input = data['answer'] #.lower()
     user_input = user_input.strip()
 
     if isinstance(correct_answer, Units):
         # Для генератора конвертации правильных ответов может быть несколько
         # Нормализуем ввод пользователя
-        user_input = user_input.lower()
+        #user_input = user_input.lower()
         user_input = user_input.replace(',', '.')  # Заменяем запятые на точки
 
         # Regexp

@@ -88,6 +88,40 @@
                 }
             },
             "additionalProperties": false
+        },
+        "roman_conversion": {
+            "type": "object",
+            "required": ["min", "max"],
+            "properties": {
+                "min": {"type": "number", "minimum": 1, "maximum": 4000},
+                "max": {"type": "number", "minimum": 1, "maximum": 4000}
+            },
+            "additionalProperties": false
+        },
+        "roman_sum": {
+            "type": "object",
+            "required": ["add", "result"],
+            "properties": {
+                "add": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": 1, "maximum": 4000},
+                        "max": {"type": "number", "minimum": 1, "maximum": 4000}
+                    },
+                    "additionalProperties": false
+                },
+                "result": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": {"type": "number", "minimum": 1, "maximum": 4000},
+                        "max": {"type": "number", "minimum": 1, "maximum": 4000}
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
         }
     },
     "additionalProperties": false
