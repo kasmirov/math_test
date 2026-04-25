@@ -7,7 +7,7 @@ let validationMode = 'warning';
 const defaultSchema = {
 	"limits": {
 		"type": "object",
-		"children": ["sum", "mult", "div"],
+		"children": ["sum", "mult", "div", "roman_conversion", "roman_sum"],
 		"description": "Настройка пределов выражений в тестах"
 	},
 	"limits.sum": {
@@ -143,7 +143,63 @@ const defaultSchema = {
 		"min": -1000,
 		"max": 1000,
 		"description": "Максимальное значение результата"
-	}
+	},
+	"limits.roman_conversion": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры для конвертации арабские-римские числа"
+	},
+	"limits.roman_conversion.min": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Минимальное величина"
+	},
+	"limits.roman_conversion.max": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Максимальная величина"
+	},
+	"limits.roman_sum": {
+		"type": "object",
+		"children": ["add", "result"],
+		"description": "Операции сложения и вычитания над римскими числами"
+	},
+	"limits.roman_sum.add": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры для сложения"
+	},
+	"limits.roman_sum.add.min": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Минимальное значение для сложения"
+	},
+	"limits.roman_sum.add.max": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Максимальное значение для сложения"
+	},
+	"limits.roman_sum.result": {
+		"type": "object",
+		"children": ["min", "max"],
+		"description": "Параметры результата сложения"
+	},
+	"limits.roman_sum.result.min": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Минимальное значение результата"
+	},
+	"limits.roman_sum.result.max": {
+		"type": "number",
+		"min": 1,
+		"max": 1000,
+		"description": "Максимальное значение результата"
+	},
 };
 
 class AccountPage {
