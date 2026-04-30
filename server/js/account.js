@@ -153,7 +153,7 @@ const defaultSchema = {
 		"type": "number",
 		"min": 1,
 		"max": 1000,
-		"description": "Минимальное величина"
+		"description": "Минимальная величина"
 	},
 	"limits.roman_conversion.max": {
 		"type": "number",
