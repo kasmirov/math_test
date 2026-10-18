@@ -82,11 +82,14 @@ Example with environment variables and volume mount:
 docker run -d -p 5000:5000 \
   -e JWT_SECRET_KEY=your-secret-key \
   -e JWT_PRIVATE_KEY=your-private-key \
+  -e JWT_COOKIE_SECURE=1 \
   -e DATABASE_PATH=/app/data/app.db \
   -v /path/to/persistent/data:/app/data \
   --name math-test \
   math-test-app
 ```
+
+**Note:** `JWT_COOKIE_SECURE=1` requires HTTPS. For local development over plain HTTP (http://localhost:5000) leave it unset, otherwise the browser will not store the authentication cookies.
 
 ## UI
 By default, the web page will be available at http://localhost:5000

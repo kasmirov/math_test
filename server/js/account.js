@@ -487,7 +487,7 @@ class AccountPage {
                     <div class="editable-cell profile-name-cell"
                          data-profile-id="${profile.id}"
                          data-field="name">
-                        ${profile.name || ''}
+                        ${escapeHtml(profile.name)}
                     </div>
                 </td>
                 <td>
@@ -525,7 +525,7 @@ class AccountPage {
         if (field === 'name') {
             cell.innerHTML = `
                 <input type="text" class="editable-input"
-                       value="${profile.name || ''}"
+                       value="${escapeHtml(profile.name)}"
                        data-profile-id="${profileId}"
                        data-field="${field}">
             `;
@@ -852,7 +852,7 @@ class AccountPage {
             <div class="modal-overlay" id="editSettingsModal">
                 <div class="modal" style="max-width: 800px;">
                     <div class="modal-header">
-                        <h3 class="modal-title">Настройки профиля "${profile.name}"</h3>
+                        <h3 class="modal-title">Настройки профиля "${escapeHtml(profile.name)}"</h3>
                         <button class="modal-close" id="closeEditSettingsModal">&times;</button>
                     </div>
                     <div class="modal-body">

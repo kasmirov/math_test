@@ -24,10 +24,20 @@ def get_db_connection():
     """Контекстный менеджер для подключения к БД"""
     conn = sqlite3.connect(db_config['DATABASE_PATH'])
     conn.row_factory = sqlite3.Row
+    # В SQLite внешние ключи по умолчанию выключены — включаем, чтобы
+    # работали ON DELETE CASCADE при удалении аккаунтов и профилей.
+    conn.execute('PRAGMA foreign_keys = ON')
     try:
         yield conn
     finally:
         conn.close()
+
+
+def get_session_id(cursor, session_uuid):
+    """Возвращает id сессии по её uuid или None, если сессия не найдена."""
+    cursor.execute('SELECT id FROM sessions WHERE session_uuid = ?', (session_uuid,))
+    row = cursor.fetchone()
+    return row['id'] if row else None
 
 
 # desktop use only
@@ -240,16 +250,14 @@ def get_statistics(profile_id: int = None, problem_keys: List[str] = None,
             params.append(date_start.isoformat())
 
         if session_uuid is not None:
-            # Получаем текущий индекс
-            cursor.execute('''
-                SELECT id FROM sessions 
-                WHERE session_uuid = ?
-            ''', (session_uuid,))
-            session_id = cursor.fetchone()[0]
+            # Получаем id сессии по uuid
+            session_id = get_session_id(cursor, session_uuid)
             if session_id is None:
-                return {}
-            query += " AND session_id = ?" if not exclude_session_uuid else " AND NOT session_id = ?"
-            params.append(session_id)
+                # Сессия не найдена — возвращаем пустую статистику
+                query += " AND 1 = 0"
+            else:
+                query += " AND session_id = ?" if not exclude_session_uuid else " AND NOT session_id = ?"
+                params.append(session_id)
 
         if date_end:
             query += " AND question_start_time <= ?"
@@ -620,10 +628,12 @@ def increase_current_question_idx(session_uuid):
             WHERE session_uuid = ?
             RETURNING current_question_index
         ''', (session_uuid,))
-        new_index = cursor.fetchone()[0]
+        row = cursor.fetchone()
         conn.commit()
 
-        return new_index
+        if not row:
+            return None
+        return row[0]
 
 
 def get_questions_number(session_uuid):
@@ -631,11 +641,9 @@ def get_questions_number(session_uuid):
         cursor = conn.cursor()
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
-        session_id = cursor.fetchone()[0]
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return 0
 
         cursor.execute('''
             SELECT * FROM test_plan
@@ -654,11 +662,9 @@ def add_question_to_session(profile_id, session_uuid, problem_key, question_inde
         correct_answer = serialize_answer(correct_answer)
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
-        session_id = cursor.fetchone()[0]
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return
 
         # Вставляем запись в test_plan
         cursor.execute('''
@@ -704,12 +710,9 @@ def get_question(session_uuid):
         cursor = conn.cursor()
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
-
-        session_id = cursor.fetchone()[0]
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return None, None, None, None, None
 
         cursor.execute('''
             SELECT 
@@ -741,12 +744,10 @@ def update_current_question_start_time(session_uuid):
         cursor = conn.cursor()
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return
 
-        session_id = cursor.fetchone()[0]
         start_date = datetime.now()
 
         # Проверяем текущее время старта вопроса на NULL
@@ -754,8 +755,8 @@ def update_current_question_start_time(session_uuid):
             SELECT question_start_time FROM test_plan
             WHERE session_id = ? AND question_index = ?
         ''', (session_id, question_index))
-        current_time = cursor.fetchone()[0]
-        if current_time is not None:
+        row = cursor.fetchone()
+        if row is not None and row[0] is not None:
             return
 
         # Обновляем время старта вопроса
@@ -774,11 +775,9 @@ def get_current_question_start_time(session_uuid):
         cursor = conn.cursor()
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
-        session_id = cursor.fetchone()[0]
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return None
 
         # Обновляем время старта вопроса
         cursor.execute('''
@@ -786,7 +785,8 @@ def get_current_question_start_time(session_uuid):
             FROM test_plan 
             WHERE session_id = ? AND question_index = ?
         ''', (session_id, question_index))
-        return cursor.fetchone()[0]
+        row = cursor.fetchone()
+        return row[0] if row is not None else None
 
 
 def update_history(profile_id, session_uuid, users_answer, is_correct, is_timeout, time_sec):
@@ -805,11 +805,9 @@ def update_history(profile_id, session_uuid, users_answer, is_correct, is_timeou
         cursor = conn.cursor()
 
         # Получаем session_id
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE session_uuid = ?
-        ''', (session_uuid,))
-        session_id = cursor.fetchone()[0]
+        session_id = get_session_id(cursor, session_uuid)
+        if session_id is None:
+            return
 
         # Получаем кол-во вопросов в сессии
         cursor.execute('''

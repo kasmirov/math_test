@@ -38,6 +38,19 @@
     };
 })();
 
+// Экранирование пользовательских данных перед вставкой через innerHTML
+window.escapeHtml = function (value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+};
+
 class AccountWidget {
     constructor(options = {}) {
         // Если экземпляр уже существует, возвращаем его с обновленными опциями
@@ -190,7 +203,7 @@ class AccountWidget {
 
         if (this.currentUser) {
             if (this.options.showProfiles && this.currentProfile) {
-                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 12px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+                btn.innerHTML = `${escapeHtml(this.currentUser.username)} <span style="font-size: 12px; opacity: 0.8;">(${escapeHtml(this.currentProfile.name)})</span>`;
             } else {
                 btn.textContent = this.currentUser.username;
             }
@@ -595,9 +608,9 @@ class AccountWidget {
     getWidgetHTML() {
         return `
             <button class="account-btn" id="accountMainBtn">${this.currentUser ?
-                (this.currentProfile ? `${this.currentUser.username}
-                    <span style="font-size: 10px; opacity: 0.8;">(${this.currentProfile.name})</span>` :
-                    this.currentUser.username) :
+                (this.currentProfile ? `${escapeHtml(this.currentUser.username)}
+                    <span style="font-size: 10px; opacity: 0.8;">(${escapeHtml(this.currentProfile.name)})</span>` :
+                    escapeHtml(this.currentUser.username)) :
                 'Войти'}</button>
             <div class="account-dropdown" id="accountDropdown">
                 ${this.getAuthHTML()}
@@ -681,8 +694,8 @@ class AccountWidget {
             return `
                 <div class="profile-item ${isActive ? 'active' : ''}"
                      data-profile-id="${profile.id}"
-                     data-profile-name="${profile.name}">
-                    <div class="profile-name">${profile.name}</div>
+                     data-profile-name="${escapeHtml(profile.name)}">
+                    <div class="profile-name">${escapeHtml(profile.name)}</div>
                     <div class="profile-type">${this.getProfileTypeName(profile.type)}</div>
                 </div>
             `;
@@ -1098,7 +1111,7 @@ class AccountWidget {
         const btn = this.container?.querySelector('#accountMainBtn');
         if (btn) {
             if (this.options.showProfiles && this.currentProfile) {
-                btn.innerHTML = `${this.currentUser.username} <span style="font-size: 12px; opacity: 0.8;">(${this.currentProfile.name})</span>`;
+                btn.innerHTML = `${escapeHtml(this.currentUser.username)} <span style="font-size: 12px; opacity: 0.8;">(${escapeHtml(this.currentProfile.name)})</span>`;
             } else {
                 btn.textContent = this.currentUser.username;
             }

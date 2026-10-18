@@ -23,6 +23,15 @@ from core.units import Units
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+
+def env_bool(name, default=False):
+    """Читает булеву настройку из переменной окружения."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 # Конфигурация
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_urlsafe(64)
 app.config['JWT_PRIVATE_KEY'] = os.environ.get('JWT_PRIVATE_KEY') or secrets.token_urlsafe(64)
@@ -35,8 +44,10 @@ app.config['JWT_CSRF_CHECK_FORM'] = False
 
 # Дополнительные настройки безопасности
 app.config['JWT_ALGORITHM'] = 'HS256'  # Алгоритм подписи
-# Только HTTPS в продакшене # Для разработки False, в продакшене должно быть True
-app.config['JWT_COOKIE_SECURE'] = True #False # not app.debug
+# Cookie с флагом Secure отправляются только по HTTPS.
+# По умолчанию False (локальная разработка по HTTP, как в README),
+# в проде за HTTPS обязательно JWT_COOKIE_SECURE=1.
+app.config['JWT_COOKIE_SECURE'] = env_bool('JWT_COOKIE_SECURE', False)
 app.config['JWT_COOKIE_HTTPONLY'] = True  # Защита от XSS
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'  # Защита от CSRF: cookie не отправляются при кросс-сайтовых запросах
 app.config['JWT_COOKIE_DOMAIN'] = None
@@ -53,6 +64,12 @@ def validate_password(password):
     if not re.search(r'[a-zA-Z]', password):
         return False
     return True
+
+
+def internal_error(exc):
+    """Логирует исключение и возвращает клиенту обезличенный ответ 500."""
+    app.logger.exception(f"Internal server error: {exc}")
+    return jsonify({'error': 'Internal server error'}), 500
 
 
 def optional_jwt_required(fn):
@@ -148,7 +165,7 @@ def register():
 
         return response, 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -195,7 +212,7 @@ def login():
 
         return response
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/auth/refresh', methods=['POST'])
@@ -263,7 +280,7 @@ def get_account():
                 'profiles': profiles_data
             })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/account', methods=['DELETE'])
@@ -281,7 +298,7 @@ def delete_account():
         unset_jwt_cookies(response)
         return response
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/account', methods=['PUT'])
@@ -358,7 +375,7 @@ def update_account():
             }
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 # Эндпоинты управления профилями
@@ -389,7 +406,7 @@ def get_profiles():
 
         return jsonify(profiles_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/profiles', methods=['POST'])
@@ -433,7 +450,7 @@ def create_profile():
             }
         }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/profiles/<int:profile_id>', methods=['GET'])
@@ -463,7 +480,7 @@ def get_profile(profile_id):
             'created_at': profile['created_at']
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/profiles/<int:profile_id>', methods=['PUT'])
@@ -524,7 +541,7 @@ def update_profile(profile_id):
             }
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/profiles/<int:profile_id>', methods=['DELETE'])
@@ -546,7 +563,7 @@ def delete_profile(profile_id):
 
         return jsonify({'message': 'Profile deleted successfully'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/profiles/<int:profile_id>/clone', methods=['POST'])
@@ -592,7 +609,7 @@ def clone_profile(profile_id):
             }
         }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(e)
 
 
 @app.route('/api/test/blocks', methods=['GET', 'POST'])
@@ -864,13 +881,14 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
                     "timeout_delta": timeout_delta,
                     "avg_time_sec_delta": avg_time_sec_delta
                 }
+        total_questions = current_results["summary"]["total_questions"]
         return jsonify({
             "total_questions": current_results["summary"]["total_questions"],
             "correct_answers": current_results["summary"]["correct_answers"],
             "incorrect_answers": current_results["summary"]["incorrect_answers"],
             "timeout_answers": current_results["summary"]["timeout_answers"],
             "correct_percent": current_results["summary"]["correct_percent"],
-            "avg_time_sec": round(total_time / current_results["summary"]["total_questions"], 1),
+            "avg_time_sec": round(total_time / total_questions, 1) if total_questions else 0,
             "total_time": round(total_time, 1),
             "sections": section_comparison
         })
