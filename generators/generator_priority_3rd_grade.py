@@ -38,17 +38,17 @@ def calc_tree_depth(graph: Node):
     depth = max(left, right)
     return depth
 
-def calc_branch(graph: Node, limits):
+def calc_branch(graph: Node, limits, state=None):
     global num_of_try
     if isinstance(graph.value, int):
         return graph.value
     result = 0
 
     while True:
-        result_a = calc_branch(graph.left, limits) if not isinstance(graph.left.value, int) else None
-        result_b = calc_branch(graph.right, limits) if not isinstance(graph.right.value, int) else None
+        result_a = calc_branch(graph.left, limits, state) if not isinstance(graph.left.value, int) else None
+        result_b = calc_branch(graph.right, limits, state) if not isinstance(graph.right.value, int) else None
         try:
-            left, right, result = generate_operators(graph.value, limits, result_a, result_b)
+            left, right, result = generate_operators(graph.value, limits, result_a, result_b, state=state)
             if isinstance(graph.left.value, int):
                 graph.left.value = left
             if isinstance(graph.right.value, int):
@@ -99,12 +99,12 @@ def tree_to_string(graph):
     result = f"{left_expr} {op} {right_expr}"
     return result
 
-def generate_expr(depth: int, limits):
+def generate_expr(depth: int, limits, state=None):
     while True:
         tree = generate_node(depth)
         result = 0
         try:
-            result = calc_branch(tree, limits)
+            result = calc_branch(tree, limits, state)
             if calc_nodes_num(tree) < depth * 2 or calc_tree_depth(tree) < depth:
                 continue
             break
@@ -125,7 +125,7 @@ class PriorityOperationsGenerator3rd(ProblemGenerator):
 
 
     def generate_problem(self, limits):
-        problem, result = generate_expr(3, limits)
+        problem, result = generate_expr(3, limits, self.operator_state)
         return problem, result
 
     def get_section_name(self, limits=None):
@@ -144,7 +144,7 @@ class PriorityOperationsGenerator4th(ProblemGenerator):
         self.tags["topic"] = ["Приоритеты операций", "Сложение и вычитание", "Умножение", "Деление"]
 
     def generate_problem(self, limits):
-        problem, result = generate_expr(5, limits)
+        problem, result = generate_expr(5, limits, self.operator_state)
         return problem, result
 
     def get_section_name(self, limits=None):

@@ -1,25 +1,54 @@
 import random
+import threading
 
-'''
-Секция переменных для того чтобы очевидные операции с 0 и 1 не генерились более одного раза
-'''
-mult_by_one = False
-mult_by_zero = False
-div_one = False
-div_zero = False
 
-def generate_operators(op, limits, left=None, right=None):
+class _OperatorFlags:
+    """Флаги, отмечающие уже сгенерированные тривиальные операции (×0/×1, ÷1)."""
+    __slots__ = ('mult_by_one', 'mult_by_zero', 'div_one', 'div_zero')
+
+    def __init__(self):
+        self.mult_by_one = False
+        self.mult_by_zero = False
+        self.div_one = False
+        self.div_zero = False
+
+
+class OperatorState:
+    """
+    Состояние генерации операций.
+
+    Флаги хранятся в thread-local, чтобы параллельные запросы и разные
+    пользователи не влияли на генерацию друг друга. Состояние сбрасывается
+    на каждую тестовую сессию через reset().
+    """
+
+    def __init__(self):
+        self._local = threading.local()
+
+    @property
+    def flags(self):
+        flags = getattr(self._local, 'flags', None)
+        if flags is None:
+            flags = _OperatorFlags()
+            self._local.flags = flags
+        return flags
+
+    def reset(self):
+        self._local.flags = _OperatorFlags()
+
+
+def generate_operators(op, limits, left=None, right=None, state=None):
     '''
     Generate set of operators for given operand that fit the limits
     :param limits:
     :param op:
+    :param state: OperatorState для отслеживания повторных тривиальных операций
     :return:
     tuple of operators
     '''
-    global mult_by_zero
-    global mult_by_one
-    global div_zero
-    global div_one
+    if state is None:
+        state = OperatorState()
+    flags = state.flags
 
     while True:
         if op == "+":
@@ -49,13 +78,13 @@ def generate_operators(op, limits, left=None, right=None):
             # встречалась ли операция с 0 или 1 ранее в текущей сессии
             if left is None and right is None:
                 if 0 in [a, b]:
-                    if mult_by_zero:
+                    if flags.mult_by_zero:
                         continue
-                    mult_by_zero = True
+                    flags.mult_by_zero = True
                 if 1 in [a, b]:
-                    if mult_by_one:
+                    if flags.mult_by_one:
                         continue
-                    mult_by_one = True
+                    flags.mult_by_one = True
 
             if limits["mult"]["result"]["min"] <= a * b <= limits["mult"]["result"]["max"]:
                 return a, b, result
@@ -100,13 +129,13 @@ def generate_operators(op, limits, left=None, right=None):
             # встречалась ли операция с 0 ранее в текущей сессии
             if left is None and right is None:
                 if 0 in [dividend, result]:
-                    if div_zero:
+                    if flags.div_zero:
                         continue
-                    div_zero = True
+                    flags.div_zero = True
                 if 1 in [divisor, result]:
-                    if div_one:
+                    if flags.div_one:
                         continue
-                    div_one = True
+                    flags.div_one = True
 
             if limits["div"]["dividend"]["min"] <= dividend <= limits["div"]["dividend"]["max"]:
                 return dividend, divisor, result

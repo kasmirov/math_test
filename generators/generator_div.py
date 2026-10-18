@@ -13,7 +13,7 @@ class DivisionGenerator(ProblemGenerator):
 
 
     def generate_problem(self, limits):
-        a, b, result = generate_operators("÷", limits)
+        a, b, result = generate_operators("÷", limits, state=self.operator_state)
         if self.latex:
             return f"${a} \\div {b} = $", result
         return f"{a} ÷ {b} = $", result

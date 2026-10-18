@@ -98,6 +98,9 @@ def generate_test_plan(profile_id,
 
     for generator in generators:
         problem_key = generator.get_key()
+        # Сбрасываем состояние генерации операций на новую сессию
+        if hasattr(generator, 'reset_state'):
+            generator.reset_state()
         section_question_idx = 0
         answer_timeout = timeout
         if not timeout:

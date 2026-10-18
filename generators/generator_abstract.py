@@ -1,6 +1,8 @@
 import re
 from abc import ABC, abstractmethod
 
+from generators.generate_operators import OperatorState
+
 UNIT_NAMES = {
     'мм': 'миллиметров',
     'см': 'сантиметров',
@@ -34,6 +36,7 @@ class ProblemGenerator(ABC):
     def __init__(self, default_timeout=30, latex=False):
         self.default_timeout = default_timeout
         self.latex = latex
+        self.operator_state = OperatorState()
         self.tags = {
             "grade": [],
             "subject": [],
@@ -139,3 +142,7 @@ class ProblemGenerator(ABC):
     def get_timeout(self):
         """Возвращает таймаут по умолчанию"""
         return self.default_timeout
+
+    def reset_state(self):
+        """Сбрасывает состояние генерации операций (вызывается на новую сессию)"""
+        self.operator_state.reset()

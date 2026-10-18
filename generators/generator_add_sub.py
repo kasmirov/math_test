@@ -15,7 +15,7 @@ class AdditionSubtractionGenerator(ProblemGenerator):
 
     def generate_problem(self, limits):
         op = random.choice(["+", "-"])
-        a, b, result = generate_operators(op, limits)
+        a, b, result = generate_operators(op, limits, state=self.operator_state)
         b = f"({b})" if b < 0 else b
         if self.latex:
             return f"${a} {op} {b} = $", result

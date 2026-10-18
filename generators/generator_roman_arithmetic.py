@@ -19,7 +19,7 @@ class RomanArithmeticGenerator(ProblemGenerator):
         roman_limits = copy.deepcopy(limits)
         roman_limits['sum'] = roman_limits['roman_sum']
         op = random.choice(["+", "-"])
-        a, b, result = generate_operators(op, roman_limits)
+        a, b, result = generate_operators(op, roman_limits, state=self.operator_state)
         a = to_roman(a)
         b = to_roman(b)
         result = to_roman(result)

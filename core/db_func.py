@@ -857,6 +857,9 @@ def update_mistakes(profile_id, session_uuid, is_correct):
     """
     Обновить статус задачи в истории ошибок
     """
+    if profile_id is None:
+        return
+
     problem_key, _, question, correct_answer, _ = get_question(session_uuid)
     if not problem_key:
         return
@@ -865,7 +868,7 @@ def update_mistakes(profile_id, session_uuid, is_correct):
         cursor = conn.cursor()
         is_old_record = False
 
-        # Find the same problem/question previously asked
+        # Find the same problem/question previously asked for this profile
         cursor.execute('''
             SELECT 
                 profile_id, 
@@ -873,8 +876,9 @@ def update_mistakes(profile_id, session_uuid, is_correct):
                 question,
                 correct_answer
             FROM mistakes
-            WHERE problem_key = ? AND question = ?
+            WHERE profile_id = ? AND problem_key = ? AND question = ?
         ''', (
+            profile_id,
             problem_key,
             question
         ))
@@ -886,8 +890,9 @@ def update_mistakes(profile_id, session_uuid, is_correct):
             # Need to remove old record from mistakes
             cursor.execute('''
                 DELETE FROM mistakes
-                WHERE problem_key = ? AND question = ?
+                WHERE profile_id = ? AND problem_key = ? AND question = ?
             ''', (
+                profile_id,
                 problem_key,
                 question
             ))

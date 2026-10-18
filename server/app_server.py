@@ -30,7 +30,7 @@ app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
 
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_CSRF_CHECK_FORM'] = False
 
 # Дополнительные настройки безопасности
@@ -38,7 +38,7 @@ app.config['JWT_ALGORITHM'] = 'HS256'  # Алгоритм подписи
 # Только HTTPS в продакшене # Для разработки False, в продакшене должно быть True
 app.config['JWT_COOKIE_SECURE'] = True #False # not app.debug
 app.config['JWT_COOKIE_HTTPONLY'] = True  # Защита от XSS
-app.config['JWT_COOKIE_SAMESITE'] = 'None' if not app.debug else 'Lax'  # Защита от CSRF
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'  # Защита от CSRF: cookie не отправляются при кросс-сайтовых запросах
 app.config['JWT_COOKIE_DOMAIN'] = None
 
 jwt = JWTManager(app)

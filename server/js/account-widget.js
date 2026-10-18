@@ -1,3 +1,43 @@
+// CSRF-защита: JWT хранится в cookie, поэтому для изменяющих запросов
+// автоматически подставляем заголовок X-CSRF-TOKEN из соответствующей cookie.
+(function () {
+    'use strict';
+
+    if (typeof window === 'undefined' || typeof window.fetch !== 'function') {
+        return;
+    }
+
+    const CSRF_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+    const originalFetch = window.fetch.bind(window);
+
+    function readCookie(name) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    window.fetch = function (input, init) {
+        const options = Object.assign({}, init);
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        const method = (options.method || (input && input.method) || 'GET').toUpperCase();
+
+        if (CSRF_METHODS.indexOf(method) !== -1) {
+            const cookieName = url.indexOf('/auth/refresh') !== -1 ? 'csrf_refresh_token' : 'csrf_access_token';
+            const token = readCookie(cookieName);
+
+            if (token) {
+                const headers = new Headers(options.headers || (input && input.headers) || {});
+                if (!headers.has('X-CSRF-TOKEN')) {
+                    headers.set('X-CSRF-TOKEN', token);
+                }
+                options.headers = headers;
+            }
+        }
+
+        return originalFetch(input, options);
+    };
+})();
+
 class AccountWidget {
     constructor(options = {}) {
         // Если экземпляр уже существует, возвращаем его с обновленными опциями

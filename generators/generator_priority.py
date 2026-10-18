@@ -20,7 +20,7 @@ class PriorityOperationsGenerator(ProblemGenerator):
             try:
                 # Генерируем выражение в скобках
                 inner_op = random.choice(operations)
-                inner_a, inner_b, inner_result = generate_operators(inner_op, limits)
+                inner_a, inner_b, inner_result = generate_operators(inner_op, limits, state=self.operator_state)
                 if self.latex:
                     problem = f'({inner_a} {latex_symbol[inner_op]} {inner_b})'
                 else:
@@ -34,13 +34,13 @@ class PriorityOperationsGenerator(ProblemGenerator):
                 is_left = random.choice(opt)
 
                 if is_left:
-                    outer_a, outer_b, outer_result = generate_operators(outer_op, limits, left=inner_result)
+                    outer_a, outer_b, outer_result = generate_operators(outer_op, limits, left=inner_result, state=self.operator_state)
                     if self.latex:
                         problem = f'${problem} {latex_symbol[outer_op]} {outer_b}$'
                     else:
                         problem = f'{problem} {outer_op} {outer_b}'
                 else:
-                    outer_a, outer_b, outer_result = generate_operators(outer_op, limits, right=inner_result)
+                    outer_a, outer_b, outer_result = generate_operators(outer_op, limits, right=inner_result, state=self.operator_state)
                     if self.latex:
                         problem = f'${outer_a} {latex_symbol[outer_op]} {problem}$'
                     else:

@@ -22,7 +22,7 @@ class EquationGenerator(ProblemGenerator):
         op_symbol = random.choice(operations)
 
         # Генерируем числа
-        a, b, result = generate_operators(op_symbol, limits)
+        a, b, result = generate_operators(op_symbol, limits, state=self.operator_state)
 
         # Где разместить неизвестное (x)
         position = random.choice(['left', 'right', 'result'])

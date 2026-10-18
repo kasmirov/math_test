@@ -20,10 +20,10 @@ class GeometryFigurePropertiesGenerator(ProblemGenerator):
         while True:
             try:
                 if op == "периметр":
-                    a, b, result = generate_operators("+", limits)
+                    a, b, result = generate_operators("+", limits, state=self.operator_state)
                     value = result * 2
                 elif op == "площадь":
-                    a, b, value = generate_operators("*", limits)
+                    a, b, value = generate_operators("*", limits, state=self.operator_state)
             except Exception as e:
                 continue
             break
