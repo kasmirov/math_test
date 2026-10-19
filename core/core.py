@@ -49,6 +49,7 @@ def explore_static_generators(latex=False, has_text_mode=None):
             ConversionGenerator(),
             YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "2nd_grade.yaml")),
             YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "3rd_grade.yaml")),
+            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "4th_grade.yaml")),
             GeometryFigurePropertiesGenerator(),
             FractionGenerator(),
             ClockGeneratorSimple(),

@@ -1163,9 +1163,6 @@ function showTestCompletion(results = null) {
                             <div class="delta-item ${timeoutDeltaClass}">
                                 ⏰ Таймаут: ${data.timeout_delta >= 0 ? '+' : ''}${data.timeout_delta}%
                             </div>
-                            <div class="delta-item ${incorrectDeltaClass}">
-                                ❌ Неправильно: ${data.incorrect_delta >= 0 ? '+' : ''}${data.incorrect_delta}%
-                            </div>
                             <div class="delta-item ${timeDeltaClass}">
                                 ⏱️ Время ответа: ${data.avg_time_sec_delta >= 0 ? '+' : ''}${data.avg_time_sec_delta.toFixed(2)} с
                             </div>
