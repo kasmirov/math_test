@@ -50,4 +50,8 @@ venv.bak/
 # default app db
 app.db
 
+# persisted jwt secrets
+.jwt_secret_key
+.jwt_private_key
+
 .idea/

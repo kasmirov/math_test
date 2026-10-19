@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import re
 import time
 
@@ -30,6 +31,9 @@ GENERATORS = {}
 # Default timeout for questions
 DEFAULT_TIMEOUT = 1000
 
+# Путь к корню проекта для ресурсов (не зависит от текущего каталога)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def explore_static_generators(latex=False, has_text_mode=None):
     global GENERATORS
     GENERATORS = {
@@ -43,8 +47,8 @@ def explore_static_generators(latex=False, has_text_mode=None):
             PriorityOperationsGenerator4th(),
             ComparisonGenerator(),
             ConversionGenerator(),
-            YamlProblemGenerator("generators/2nd_grade.yaml"),
-            YamlProblemGenerator("generators/3rd_grade.yaml"),
+            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "2nd_grade.yaml")),
+            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "3rd_grade.yaml")),
             GeometryFigurePropertiesGenerator(),
             FractionGenerator(),
             ClockGeneratorSimple(),

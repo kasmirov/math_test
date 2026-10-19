@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     profile_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    session_uuid INTEGER NOT NULL,
+    session_uuid TEXT NOT NULL,
     current_question_index INTEGER NOT NULL,
     FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE
 );
@@ -73,8 +73,7 @@ CREATE TABLE IF NOT EXISTS history (
     is_correct BOOL NOT NULL,
     is_timeout BOOL NOT NULL,
     time_sec REAL NOT NULL,
-    FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE,
-    FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
+    FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS settings (

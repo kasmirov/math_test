@@ -4,7 +4,7 @@ from pathlib import Path
 
 def main():
     if len(sys.argv) < 2:
-        print("Укажите режим запуска: 'console' или 'server'")
+        print("Укажите режим запуска: '--console' или '--server'")
         sys.exit(1)
 
     mode = sys.argv[1].lower()
@@ -16,7 +16,7 @@ def main():
         app_server.main()
     else:
         print(f"Неизвестный режим: {mode}")
-        print("Доступные режимы: 'console', 'server'")
+        print("Доступные режимы: '--console', '--server'")
         sys.exit(1)
 
 

@@ -1,0 +1,942 @@
+openapi: 3.0.0
+info:
+  title: Math Tests API
+  description: >-
+    API системы математических тестов. Аутентификация — JWT в HTTP-only cookie
+    (access_token_cookie / refresh_token_cookie). Для изменяющих запросов (POST/PUT/DELETE),
+    выполняемых от имени пользователя по cookie, требуется заголовок X-CSRF-TOKEN
+    (значение одноимённой cookie csrf_access_token).
+  version: 2.1.0
+servers:
+  - url: http://localhost:5000/api
+    description: Локальный сервер разработки
+
+tags:
+  - name: Аутентификация
+  - name: Аккаунт
+  - name: Профили
+  - name: Тесты
+  - name: Статистика
+
+security:
+  - cookieAuth: []
+
+paths:
+  /auth/register:
+    post:
+      summary: Зарегистрировать пользователя
+      description: Создаёт пользователя и сразу устанавливает cookie с access/refresh токенами.
+      tags: [Аутентификация]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /auth/login:
+    post:
+      summary: Войти
+      tags: [Аутентификация]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /auth/refresh:
+    post:
+      summary: Обновить access-токен по refresh-cookie
+      tags: [Аутентификация]
+      security:
+        - refreshCookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfRefreshToken'
+      responses:
+        '200':
+          description: Токен обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      summary: Выйти (очистить cookie)
+      tags: [Аутентификация]
+      security: []
+      responses:
+        '200':
+          description: Выход выполнен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /account:
+    get:
+      summary: Текущий аккаунт и его профили
+      tags: [Аккаунт]
+      responses:
+        '200':
+          description: Данные аккаунта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      summary: Обновить аккаунт
+      tags: [Аккаунт]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+      responses:
+        '200':
+          description: Аккаунт обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      summary: Удалить аккаунт
+      tags: [Аккаунт]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Аккаунт удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /profiles:
+    get:
+      summary: Список профилей пользователя
+      tags: [Профили]
+      responses:
+        '200':
+          description: Список профилей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      summary: Создать профиль
+      tags: [Профили]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileCreate'
+      responses:
+        '201':
+          description: Профиль создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /profiles/{profile_id}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      summary: Получить профиль
+      tags: [Профили]
+      responses:
+        '200':
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      summary: Обновить профиль
+      tags: [Профили]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      summary: Удалить профиль
+      tags: [Профили]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Профиль удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /profiles/{profile_id}/clone:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    post:
+      summary: Клонировать профиль
+      tags: [Профили]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '201':
+          description: Профиль склонирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /test/blocks:
+    get:
+      summary: Список блоков вопросов
+      description: Доступно и анонимным, и авторизованным пользователям.
+      tags: [Тесты]
+      security: []
+      parameters:
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Фильтр по тегам (необязательно)
+      responses:
+        '200':
+          description: Блоки вопросов и доступные теги
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuestionBlock'
+                  available_tags:
+                    type: array
+                    items:
+                      type: string
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /test/session/new:
+    post:
+      summary: Создать новую сессию тестирования
+      description: >-
+        Доступно анонимным и авторизованным пользователям. Предыдущие незавершённые
+        сессии профиля удаляются.
+      tags: [Тесты]
+      security: []
+      parameters:
+        - in: query
+          name: block_id
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+          description: ID выбранных блоков вопросов
+        - in: query
+          name: num_of_questions
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Число вопросов на блок (по умолчанию 1)
+        - in: query
+          name: timeout
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3600
+          description: Таймаут на вопрос в секундах (по умолчанию из генератора)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                work_on_mistakes:
+                  type: boolean
+                  description: Заполнять план только ранее нерешёнными задачами
+                profile_id:
+                  type: integer
+                  description: Профиль авторизованного пользователя (необязательно)
+      responses:
+        '200':
+          description: Сессия создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /test/session/{session_uuid}:
+    get:
+      summary: Получить следующий вопрос
+      tags: [Тесты]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SessionUuid'
+      responses:
+        '200':
+          description: >-
+            Вопрос либо {message: "Тест завершен"}, если все вопросы пройдены.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /test/session/{session_uuid}/answer:
+    post:
+      summary: Отправить ответ на вопрос
+      tags: [Тесты]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SessionUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              properties:
+                answer:
+                  type: string
+                  description: Ответ пользователя
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /test/session/{session_uuid}/results:
+    post:
+      summary: Результаты сессии
+      tags: [Тесты]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SessionUuid'
+      responses:
+        '200':
+          description: Итоги сессии (для авторизованных добавляются avg_time_sec и sections)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResults'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /stats:
+    post:
+      summary: Статистика пользователя по блокам
+      tags: [Статистика]
+      parameters:
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+          description: Дата начала периода (необязательно)
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+          description: Дата окончания периода (необязательно)
+        - in: query
+          name: block_id
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+          description: ID блоков вопросов (необязательно)
+      responses:
+        '200':
+          description: Статистика по блокам
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Statistic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /stats/unsolved:
+    post:
+      summary: Блоки с нерешёнными (ошибочными) задачами
+      tags: [Статистика]
+      responses:
+        '200':
+          description: Блоки, по которым есть ошибки, с числом ошибок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnsolvedBlock'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /history:
+    post:
+      summary: История сессий по блоку и периоду
+      tags: [Статистика]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [block_id]
+              properties:
+                block_id:
+                  type: integer
+                date_from:
+                  type: string
+                  format: date
+                date_to:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Список сессий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistorySession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token_cookie
+      description: Access-токен в HTTP-only cookie
+    refreshCookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token_cookie
+      description: Refresh-токен в HTTP-only cookie
+
+  parameters:
+    CsrfToken:
+      in: header
+      name: X-CSRF-TOKEN
+      required: false
+      schema:
+        type: string
+      description: >-
+        CSRF-токен из cookie csrf_access_token. Обязателен для POST/PUT/DELETE,
+        выполняемых по cookie-аутентификации.
+    CsrfRefreshToken:
+      in: header
+      name: X-CSRF-TOKEN
+      required: true
+      schema:
+        type: string
+      description: CSRF-токен из cookie csrf_refresh_token.
+    ProfileId:
+      in: path
+      name: profile_id
+      required: true
+      schema:
+        type: integer
+    SessionUuid:
+      in: path
+      name: session_uuid
+      required: true
+      schema:
+        type: string
+      description: UUID сессии
+
+  responses:
+    BadRequest:
+      description: Неверные параметры запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Требуется аутентификация
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Объект не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Слишком много запросов (rate limit)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          description: Минимум 8 символов, содержит буквы и цифры
+        username:
+          type: string
+        cookies_agreement:
+          type: boolean
+        personal_data_agreement:
+          type: boolean
+        test_results_mailing:
+          type: boolean
+        obligatory_mailing:
+          type: boolean
+        service_news:
+          type: boolean
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+            username:
+              type: string
+
+    Account:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Profile'
+
+    AccountUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        preferences:
+          type: object
+        cookies_agreement:
+          type: boolean
+        personal_data_agreement:
+          type: boolean
+        test_results_mailing:
+          type: boolean
+        obligatory_mailing:
+          type: boolean
+        service_news:
+          type: boolean
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+        cookies_agreement:
+          type: boolean
+        personal_data_agreement:
+          type: boolean
+        test_results_mailing:
+          type: boolean
+        obligatory_mailing:
+          type: boolean
+        service_news:
+          type: boolean
+        preferences:
+          type: object
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        settings:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    ProfileCreate:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        settings:
+          type: object
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        settings:
+          type: object
+
+    ProfileResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        profile:
+          $ref: '#/components/schemas/Profile'
+
+    QuestionBlock:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        hint:
+          type: string
+        question_count:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        section_key:
+          type: string
+
+    UnsolvedBlock:
+      allOf:
+        - $ref: '#/components/schemas/QuestionBlock'
+        - type: object
+          properties:
+            count:
+              type: integer
+              description: Число нерешённых задач
+
+    Session:
+      type: object
+      properties:
+        session_uuid:
+          type: string
+          description: UUID созданной сессии
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Индекс вопроса в сессии
+        block_id:
+          type: string
+          description: Ключ раздела (problem_key)
+        block_name:
+          type: string
+        block_hint:
+          type: string
+        text:
+          type: string
+        time_limit:
+          type: integer
+          description: Лимит времени на вопрос в секундах
+        current_question_number:
+          type: integer
+        total_questions_in_block:
+          type: integer
+
+    AnswerResult:
+      type: object
+      properties:
+        is_correct:
+          type: boolean
+        is_timeout:
+          type: boolean
+        correct_answer:
+          type: string
+        has_next_question:
+          type: boolean
+
+    SessionResults:
+      type: object
+      properties:
+        total_questions:
+          type: integer
+        correct_answers:
+          type: integer
+        incorrect_answers:
+          type: integer
+        timeout_answers:
+          type: integer
+        correct_percent:
+          type: number
+          format: float
+        total_time:
+          type: number
+          format: float
+          description: Суммарное время ответов, сек
+        avg_time_sec:
+          type: number
+          format: float
+          description: Среднее время на вопрос, сек (только для авторизованных)
+        sections:
+          type: object
+          description: Сравнение с предыдущими сессиями (только для авторизованных)
+          additionalProperties:
+            $ref: '#/components/schemas/SectionComparison'
+
+    SectionComparison:
+      type: object
+      properties:
+        block_name:
+          type: string
+        correct_delta:
+          type: number
+          format: float
+        incorrect_delta:
+          type: number
+          format: float
+        timeout_delta:
+          type: number
+          format: float
+        avg_time_sec_delta:
+          type: number
+          format: float
+
+    Statistic:
+      type: object
+      properties:
+        block_id:
+          type: integer
+        block_name:
+          type: string
+        correct_answers:
+          type: integer
+        correct_timeout_answers:
+          type: integer
+        total_answers:
+          type: integer
+        percentage:
+          type: number
+          format: float
+
+    HistorySession:
+      type: object
+      properties:
+        session_id:
+          type: integer
+        session_start:
+          type: string
+          format: date-time
+        correct_count:
+          type: integer
+        timeout_count:
+          type: integer
+        incorrect_count:
+          type: integer

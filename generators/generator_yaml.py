@@ -1,3 +1,4 @@
+import os
 import yaml
 import random
 
@@ -33,7 +34,8 @@ class YamlProblemGenerator(ProblemGenerator):
         return f"{self.title}"
 
     def get_key(self):
-        return f"yaml_{self.yaml_file}"
+        # Стабильный ключ, не зависящий от абсолютного пути к файлу
+        return f"yaml_generators/{os.path.basename(self.yaml_file)}"
 
     def get_problems_number(self):
         return self.count

@@ -2,6 +2,8 @@ import re
 import os
 import secrets
 import json
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -18,7 +20,7 @@ from core.db_func import create_session, get_anonymous_profile, get_user_id_by_e
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
     get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection, \
-    get_session_history
+    get_session_history, delete_current_session
 from core.units import Units
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -32,9 +34,46 @@ def env_bool(name, default=False):
     return value.strip().lower() in ('1', 'true', 'yes', 'on')
 
 
+# Каталог для постоянных секретов (рядом с базой данных)
+SECRET_DIR = os.path.dirname(os.path.abspath(os.environ.get('DATABASE_PATH') or 'app.db'))
+
+
+def persisted_secret(env_name, filename):
+    """Возвращает секрет из переменной окружения или из постоянного файла.
+
+    Если переменная окружения не задана, секрет создаётся один раз и
+    сохраняется, чтобы токены не инвалидировались при перезапуске
+    и работали при нескольких воркерах.
+    """
+    env_value = os.environ.get(env_name)
+    if env_value:
+        return env_value
+
+    path = os.path.join(SECRET_DIR, filename)
+    try:
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                value = f.read().strip()
+            if value:
+                return value
+
+        value = secrets.token_urlsafe(64)
+        os.makedirs(SECRET_DIR, exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(value)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+        return value
+    except OSError:
+        app.logger.warning('Не удалось сохранить %s, секрет будет только в памяти', filename)
+        return secrets.token_urlsafe(64)
+
+
 # Конфигурация
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_urlsafe(64)
-app.config['JWT_PRIVATE_KEY'] = os.environ.get('JWT_PRIVATE_KEY') or secrets.token_urlsafe(64)
+app.config['JWT_SECRET_KEY'] = persisted_secret('JWT_SECRET_KEY', '.jwt_secret_key')
+app.config['JWT_PRIVATE_KEY'] = persisted_secret('JWT_PRIVATE_KEY', '.jwt_private_key')
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
@@ -64,6 +103,40 @@ def validate_password(password):
     if not re.search(r'[a-zA-Z]', password):
         return False
     return True
+
+
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+# Ограничения на параметры генерации теста
+MAX_QUESTIONS_PER_BLOCK = 100
+MAX_TIMEOUT_SECONDS = 3600
+
+
+def validate_email(email):
+    """Простая проверка формата email."""
+    return bool(email) and bool(EMAIL_RE.match(email)) and len(email) <= 254
+
+
+# Простой in-memory rate limiter (на процесс)
+_rate_limit_store = defaultdict(deque)
+
+
+def rate_limit(max_requests, window_seconds):
+    """Ограничивает число запросов к эндпоинту с одного IP в окне времени."""
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            key = f"{fn.__name__}:{request.remote_addr or 'unknown'}"
+            now = time.monotonic()
+            bucket = _rate_limit_store[key]
+            while bucket and now - bucket[0] > window_seconds:
+                bucket.popleft()
+            if len(bucket) >= max_requests:
+                return jsonify({'error': 'Too many requests'}), 429
+            bucket.append(now)
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def internal_error(exc):
@@ -108,12 +181,16 @@ def get_user_and_profile(fn):
 
 # Эндпоинты аутентификации
 @app.route('/api/auth/register', methods=['POST'])
+@rate_limit(10, 60)
 def register():
     try:
         data = request.get_json()
 
         if not data or not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Email and password are required'}), 400
+
+        if not validate_email(data['email']):
+            return jsonify({'error': 'Invalid email format'}), 400
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -169,12 +246,16 @@ def register():
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@rate_limit(10, 60)
 def login():
     try:
         data = request.get_json()
 
         if not data or not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Email and password are required'}), 400
+
+        if not validate_email(data['email']):
+            return jsonify({'error': 'Invalid email format'}), 400
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -661,6 +742,11 @@ def create_new_session(is_authenticated=False, user_email=None):
     if not block_ids:
         return jsonify({"error": "Не выбраны блоки вопросов"}), 400
 
+    if num_of_questions is not None and not (1 <= num_of_questions <= MAX_QUESTIONS_PER_BLOCK):
+        return jsonify({"error": f"num_of_questions должен быть в диапазоне 1..{MAX_QUESTIONS_PER_BLOCK}"}), 400
+    if timeout is not None and not (1 <= timeout <= MAX_TIMEOUT_SECONDS):
+        return jsonify({"error": f"timeout должен быть в диапазоне 1..{MAX_TIMEOUT_SECONDS}"}), 400
+
     # Get credentials
     if is_authenticated:
         user_id, profile_id = get_creds_from_email(user_email)
@@ -676,6 +762,12 @@ def create_new_session(is_authenticated=False, user_email=None):
     for block_id in block_ids:
         if block_id not in valid_block_ids:
             return jsonify({"error": f"Блок с ID {block_id} не найден"}), 400
+
+    # Убираем незавершённые сессии авторизованного профиля, чтобы не копить их в БД.
+    # Для анонимного профиля (общий на всех) очистку не делаем, чтобы не
+    # затрагивать сессии других анонимных пользователей.
+    if is_authenticated:
+        delete_current_session(profile_id)
 
     # Создаем сессию
     session_uuid = create_session(profile_id)
@@ -850,8 +942,24 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
         profile_id = get_anonymous_profile()
 
     current_results = get_statistics(profile_id, session_uuid=session_uuid)
-    problems = current_results.keys()
-    total_time = 0
+    summary = current_results["summary"]
+    total_questions = summary["total_questions"]
+
+    # Суммарное время = сумма средних времён по разделам, взвешенных по числу вопросов
+    total_time = sum(
+        stats["avg_time_sec"] * stats["total_questions"]
+        for key, stats in current_results.items() if key != "summary"
+    )
+    avg_time_sec = round(total_time / total_questions, 1) if total_questions else 0
+
+    response = {
+        "total_questions": summary["total_questions"],
+        "correct_answers": summary["correct_answers"],
+        "incorrect_answers": summary["incorrect_answers"],
+        "timeout_answers": summary["timeout_answers"],
+        "correct_percent": summary["correct_percent"],
+        "total_time": round(total_time, 1),
+    }
 
     if is_authenticated:
         # Get combined stats for last 3 tests + 1 current
@@ -861,47 +969,23 @@ def get_session_results(session_uuid, is_authenticated=False, user_email=None):
                                           exclude_session_uuid=True)
         section_comparison = {}
 
-        for problem in problems:
+        for problem, current_problem_stats in current_results.items():
             if problem == 'summary':
                 continue
-            current_problem_stats = current_results[problem]
-            total_time += current_problem_stats["avg_time_sec"]
-
             if problem in previous_results.keys():
                 previous_problem_stats = previous_results[problem]
-                correct_delta = round(current_problem_stats["correct_percent"] - previous_problem_stats["correct_percent"], 1)
-                incorrect_delta = round(current_problem_stats["incorrect_percent"] - previous_problem_stats["incorrect_percent"], 1)
-                timeout_delta = round(current_problem_stats["timeout_percent"] - previous_problem_stats["timeout_percent"], 1)
-                avg_time_sec_delta = round(current_problem_stats["avg_time_sec"] - previous_problem_stats["avg_time_sec"], 1)
-
                 section_comparison[problem] = {
                     "block_name": get_generator(problem).get_section_name(),
-                    "correct_delta": correct_delta,
-                    "incorrect_delta": incorrect_delta,
-                    "timeout_delta": timeout_delta,
-                    "avg_time_sec_delta": avg_time_sec_delta
+                    "correct_delta": round(current_problem_stats["correct_percent"] - previous_problem_stats["correct_percent"], 1),
+                    "incorrect_delta": round(current_problem_stats["incorrect_percent"] - previous_problem_stats["incorrect_percent"], 1),
+                    "timeout_delta": round(current_problem_stats["timeout_percent"] - previous_problem_stats["timeout_percent"], 1),
+                    "avg_time_sec_delta": round(current_problem_stats["avg_time_sec"] - previous_problem_stats["avg_time_sec"], 1)
                 }
-        total_questions = current_results["summary"]["total_questions"]
-        return jsonify({
-            "total_questions": current_results["summary"]["total_questions"],
-            "correct_answers": current_results["summary"]["correct_answers"],
-            "incorrect_answers": current_results["summary"]["incorrect_answers"],
-            "timeout_answers": current_results["summary"]["timeout_answers"],
-            "correct_percent": current_results["summary"]["correct_percent"],
-            "avg_time_sec": round(total_time / total_questions, 1) if total_questions else 0,
-            "total_time": round(total_time, 1),
-            "sections": section_comparison
-        })
 
-    return jsonify({
-        "total_questions": current_results["summary"]["total_questions"],
-        "correct_answers": current_results["summary"]["correct_answers"],
-        "incorrect_answers": current_results["summary"]["incorrect_answers"],
-        "timeout_answers": current_results["summary"]["timeout_answers"],
-        "correct_percent": current_results["summary"]["correct_percent"],
-        #"avg_time_sec": round(total_time / current_results["summary"]["total_questions"], 1),
-        "total_time": round(total_time, 1),
-    })
+        response["avg_time_sec"] = avg_time_sec
+        response["sections"] = section_comparison
+
+    return jsonify(response)
 
 
 @app.route('/api/stats', methods=['POST'])

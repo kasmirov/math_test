@@ -1,9 +1,10 @@
+import ast
 import json
+import os
 import sqlite3
-import random
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from json import JSONDecodeError
 from typing import List, Dict
 
 from core.limits import default_limits, validate_limits, deep_merge
@@ -12,9 +13,14 @@ from core.units import Units
 
 ANONYMOUS = 'anonymous@localhost'
 
+# Путь к схеме БД относительно корня проекта (не зависит от текущего каталога)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'schema.sql')
+
+
 def init_db():
     """Инициализация базы данных"""
-    with open('schema.sql', mode='r') as f:
+    with open(SCHEMA_PATH, mode='r', encoding='utf-8') as f:
         with get_db_connection() as conn:
             conn.cursor().executescript(f.read())
             conn.commit()
@@ -542,8 +548,8 @@ def create_session(profile_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Создаем новую сессию
-        session_uuid = random.randint(1, 2 ** 32 - 1)  # Генерируем случайный UUID
+        # Создаем новую сессию со случайным UUID (коллизии практически исключены)
+        session_uuid = uuid.uuid4().hex
         cursor.execute('''
             INSERT INTO sessions (profile_id, session_uuid, current_question_index)
             VALUES (?, ?, ?)
@@ -564,6 +570,8 @@ def get_current_session(profile):
         cursor.execute('''
             SELECT session_uuid FROM sessions 
             WHERE profile_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
         ''', (profile_id,))
 
         result = cursor.fetchone()
@@ -577,23 +585,12 @@ def delete_current_session(profile_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Получаем текущий индекс
-        cursor.execute('''
-            SELECT id FROM sessions 
-            WHERE profile_id = ?
-        ''', (profile_id,))
-        result = cursor.fetchone()
-        if result is None:
-            return
-        session_id = result[0]
-
-        # Удаляем записи в test_plan
+        # Удаляем все незавершённые сессии профиля и их планы вопросов
         cursor.execute('''
             DELETE FROM test_plan 
-            WHERE profile_id = ? AND session_id = ?
-        ''', (profile_id, session_id))
+            WHERE profile_id = ?
+        ''', (profile_id,))
 
-        # Удаляем запись в sessions
         cursor.execute('''
             DELETE FROM sessions 
             WHERE profile_id = ?
@@ -686,7 +683,7 @@ def serialize_answer(answer):
         return answer
 
     if isinstance(answer, Units):
-        return str(answer.to_dict())
+        return json.dumps(answer.to_dict(), ensure_ascii=False)
 
 
 def deserialize_answer(answer):
@@ -694,12 +691,23 @@ def deserialize_answer(answer):
     Десериализует ответ из строки хранения в базе данных в объект
     Возвращает объект
     """
+    if not isinstance(answer, str):
+        return answer
+
+    text = answer.strip()
+    if not text.startswith('{'):
+        return answer
+
     try:
-        tmp = json.loads(answer.replace("'", "\""))
-        if isinstance(tmp, dict) and '__class__' in tmp and tmp['__class__'] in ['Units', 'Weight', 'Length', 'Volume']:
+        tmp = ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        return answer
+
+    if isinstance(tmp, dict) and tmp.get('__class__') in ('Units', 'Weight', 'Length', 'Volume'):
+        try:
             return Units.from_dict(tmp)
-    except JSONDecodeError as e:
-        pass
+        except (KeyError, TypeError, ValueError):
+            return answer
     return answer
 
 
