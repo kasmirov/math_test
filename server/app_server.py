@@ -1140,6 +1140,24 @@ def serve_static(path):
     return send_from_directory('static', path)
 
 
+# Картинки для случайного показа на главной странице
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'}
+SHUFFLE_IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'img', 'shuffle')
+
+
+@app.route('/api/images/shuffle', methods=['GET'])
+def get_shuffle_images():
+    """Список картинок для случайного показа на главной странице."""
+    try:
+        names = sorted(
+            name for name in os.listdir(SHUFFLE_IMG_DIR)
+            if os.path.splitext(name)[1].lower() in IMAGE_EXTENSIONS
+        )
+    except OSError:
+        names = []
+    return jsonify({'images': [f'/img/shuffle/{name}' for name in names]})
+
+
 @app.route('/img/<path:path>')
 def serve_img(path):
     return send_from_directory('img', path)

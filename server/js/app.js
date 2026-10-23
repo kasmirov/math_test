@@ -89,12 +89,60 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Настраиваем фильтры статистики
 	setupStatsFilters();
 
+	// Показываем случайную картинку на главном экране
+	initRandomMainImage();
+
 	// Показываем уведомление об активной сессии через небольшую задержку
     setTimeout(checkActiveSession, 1000);
 
     // Обновление аккаунта после чего-то там с меню
     setTimeout(updateAppInfo, 1000);
 });
+
+// Случайная картинка на главном экране (из img/shuffle).
+// src задаётся только после выбора, поэтому дефолтная картинка не мелькает.
+const DEFAULT_MAIN_IMAGE = '/img/shuffle/680f7adb-6d52-4ba0-a72f-c9d3c24bfdec.jpg';
+
+async function initRandomMainImage() {
+	const img = document.getElementById('mainImage');
+	if (!img) {
+		return;
+	}
+
+	let images = [];
+	try {
+		const response = await fetch(`${API_BASE_URL}/images/shuffle`);
+		if (response.ok) {
+			const data = await response.json();
+			images = (data && data.images) || [];
+		}
+	} catch (error) {
+		console.warn('Не удалось загрузить список картинок:', error);
+	}
+
+	if (images.length === 0) {
+		images = [DEFAULT_MAIN_IMAGE];
+	}
+
+	const previous = img.dataset.current || null;
+	let pick = images[Math.floor(Math.random() * images.length)];
+
+	// По возможности не показываем ту же картинку дважды подряд
+	if (images.length > 1 && pick === previous) {
+		const others = images.filter(src => src !== previous);
+		pick = others[Math.floor(Math.random() * others.length)];
+	}
+
+	img.dataset.current = pick;
+	// Показываем картинку только когда она полностью загружена
+	img.onload = () => {
+		img.style.display = '';
+	};
+	img.onerror = () => {
+		img.style.display = 'none';
+	};
+	img.src = pick;
+}
 
 function setupEventListeners() {
 	// Главный экран
