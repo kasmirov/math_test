@@ -84,6 +84,8 @@ class AccountWidget {
         this.lastActivityTime = Date.now();
         this.container = null;
         this.dropdown = null;
+        this._listenerContainer = null;
+        this._documentListenersAttached = false;
 
         // Сохраняем экземпляр как статическое свойство
         AccountWidget.instance = this;
@@ -712,60 +714,79 @@ class AccountWidget {
     setupEventListeners() {
         if (!this.container) return;
 
-        // Обработчик для основной кнопки
-        this.container.addEventListener('click', (e) => {
-            if (e.target.id === 'accountMainBtn') {
-                e.stopPropagation();
-                this.toggleDropdown();
-            }
+        // Слушатели контейнера навешиваем один раз для текущего элемента.
+        // render() создаёт новый контейнер, поэтому при перерисовке навешиваем заново.
+        if (this._listenerContainer !== this.container) {
+            this._listenerContainer = this.container;
 
-            // Делегирование для вкладок авторизации
-            if (e.target.classList.contains('auth-tab-header')) {
-                const tabName = e.target.getAttribute('data-tab');
-                this.switchAuthTab(tabName);
-            }
-
-            // Делегирование для пунктов меню аккаунта
-            if (e.target.classList.contains('account-menu-item') && e.target.getAttribute('data-action')) {
-                const action = e.target.getAttribute('data-action');
-                this.handleAccountAction(action, e.target);
-            }
-
-            // Делегирование для профилей
-            if (this.options.showProfiles && (e.target.classList.contains('profile-item') || e.target.closest('.profile-item'))) {
-                const profileItem = e.target.classList.contains('profile-item') ? e.target : e.target.closest('.profile-item');
-                const profileId = profileItem.getAttribute('data-profile-id');
-
-                if (profileId) {
-                    const profileName = profileItem.getAttribute('data-profile-name');
-                    this.handleProfileClick(parseInt(profileId), profileName);
+            this.container.addEventListener('click', (e) => {
+                // Основная кнопка: используем closest, чтобы клик по вложенным
+                // элементам (span с именем профиля) тоже раскрывал меню.
+                const mainBtn = e.target.closest ? e.target.closest('#accountMainBtn') : null;
+                if (mainBtn) {
+                    e.stopPropagation();
+                    this.toggleDropdown();
+                    return;
                 }
-            }
-        });
 
-        // Делегирование для форм авторизации
-        this.container.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (e.target.id === 'loginForm') {
-                this.login();
-            } else if (e.target.id === 'registerForm') {
-                this.register();
-            }
-        });
+                // Делегирование для вкладок авторизации
+                if (e.target.classList.contains('auth-tab-header')) {
+                    const tabName = e.target.getAttribute('data-tab');
+                    this.switchAuthTab(tabName);
+                    return;
+                }
 
-        // Закрытие dropdown при клике вне его
-        document.addEventListener('click', (e) => {
-            if (this.container && !this.container.contains(e.target)) {
-                this.hideDropdown();
-            }
-        });
+                // Делегирование для пунктов меню аккаунта
+                const menuItem = e.target.closest ? e.target.closest('.account-menu-item') : null;
+                if (menuItem && menuItem.getAttribute('data-action')) {
+                    if (menuItem.disabled) return;
+                    this.handleAccountAction(menuItem.getAttribute('data-action'), menuItem);
+                    return;
+                }
 
-        // Закрытие dropdown при нажатии Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.dropdown?.classList.contains('show')) {
-                this.hideDropdown();
-            }
-        });
+                // Делегирование для профилей
+                if (this.options.showProfiles) {
+                    const profileItem = e.target.closest ? e.target.closest('.profile-item') : null;
+                    if (profileItem) {
+                        const profileId = profileItem.getAttribute('data-profile-id');
+                        if (profileId) {
+                            const profileName = profileItem.getAttribute('data-profile-name');
+                            this.handleProfileClick(parseInt(profileId), profileName);
+                        }
+                    }
+                }
+            });
+
+            // Делегирование для форм авторизации
+            this.container.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (e.target.id === 'loginForm') {
+                    this.login();
+                } else if (e.target.id === 'registerForm') {
+                    this.register();
+                }
+            });
+        }
+
+        // Документные слушатели навешиваем один раз, чтобы избежать накопления
+        // дубликатов при повторных вызовах (они используют актуальный this.container).
+        if (!this._documentListenersAttached) {
+            this._documentListenersAttached = true;
+
+            // Закрытие dropdown при клике вне его
+            document.addEventListener('click', (e) => {
+                if (this.container && !this.container.contains(e.target)) {
+                    this.hideDropdown();
+                }
+            });
+
+            // Закрытие dropdown при нажатии Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.dropdown?.classList.contains('show')) {
+                    this.hideDropdown();
+                }
+            });
+        }
     }
 
     toggleDropdown() {
