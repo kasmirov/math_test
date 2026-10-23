@@ -44,7 +44,18 @@ python math_test.py --console
 
 ## Docker
 
-### Local Development
+The project is built in two variants:
+
+| Image | Dockerfile | Purpose | Pages | Protocol |
+|-------|------------|---------|-------|----------|
+| Local / personal | `Dockerfile` | debugging and personal use | app (`/app`) and help (`/help`) only | HTTP |
+| Production | `Dockerfile.prod` | external users | all pages (landing, app, help, footer) | HTTPS (nginx + gunicorn) |
+
+The page set is controlled by `APP_PAGES_MODE`:
+- `full` (default) — all pages;
+- `minimal` — no landing page (`/` redirects to `/app`) and no footer (`/footer.html` returns 404).
+
+### Local Development (HTTP, minimal page set)
 
 Build the Docker image:
 ```bash
@@ -59,7 +70,7 @@ docker run -d -p 5000:5000 \
   math-test-app
 ```
 
-The web application will be available at http://localhost:5000
+The web application will be available at http://localhost:5000 (`/` redirects to `/app`).
 
 **Notes:**
 - The `-v ./data:/app/data` flag mounts a host directory for database persistence. Data will survive container restarts and recreations.
@@ -69,27 +80,47 @@ The web application will be available at http://localhost:5000
 
 **WSL Compatibility:** The container works correctly from WSL. The port mapping (`-p 5000:5000`) makes the service accessible at `http://localhost:5000` from both WSL and Windows.
 
-### Production Deployment
+### Production Deployment (HTTPS via nginx reverse proxy)
 
-For production deployment in a hosting service, consider using a multi-stage build or a production-optimized Dockerfile with:
-- Environment variables for secrets (JWT keys, etc.)
-- Health checks
-- Resource limits
-- HTTPS configuration
+The production image runs gunicorn (WSGI) behind nginx, which terminates TLS.
+Certificates are mounted into `/etc/nginx/certs`; their paths are configurable via environment variables.
 
-Example with environment variables and volume mount:
+Build the production image:
 ```bash
-docker run -d -p 5000:5000 \
-  -e JWT_SECRET_KEY=your-secret-key \
-  -e JWT_PRIVATE_KEY=your-private-key \
-  -e JWT_COOKIE_SECURE=1 \
-  -e DATABASE_PATH=/app/data/app.db \
-  -v /path/to/persistent/data:/app/data \
-  --name math-test \
-  math-test-app
+docker build -f Dockerfile.prod -t math-test-prod .
 ```
 
-**Note:** `JWT_COOKIE_SECURE=1` requires HTTPS. For local development over plain HTTP (http://localhost:5000) leave it unset, otherwise the browser will not store the authentication cookies.
+Run with your TLS certificates:
+```bash
+docker run -d -p 80:80 -p 443:443 \
+  -e SERVER_NAME=example.com \
+  -e TLS_CERT_FILE=/etc/nginx/certs/fullchain.pem \
+  -e TLS_KEY_FILE=/etc/nginx/certs/privkey.pem \
+  -v /path/to/persistent/data:/app/data \
+  -v /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro \
+  --name math-test-prod \
+  math-test-prod
+```
+
+Certificates can also be placed directly at `/etc/nginx/certs/fullchain.pem` and
+`/etc/nginx/certs/privkey.pem` — in that case `TLS_CERT_FILE`/`TLS_KEY_FILE` may be omitted.
+
+**Environment variables (production):**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_NAME` | `_` | domain for nginx (`server_name`) |
+| `HTTP_PORT` | `80` | HTTP port (redirects to HTTPS) |
+| `HTTPS_PORT` | `443` | HTTPS port |
+| `TLS_CERT_FILE` | `/etc/nginx/certs/fullchain.pem` | path to the certificate |
+| `TLS_KEY_FILE` | `/etc/nginx/certs/privkey.pem` | path to the private key |
+| `GUNICORN_BIND` | `127.0.0.1:8000` | gunicorn bind address (internal) |
+| `GUNICORN_WORKERS` | `3` | number of gunicorn workers |
+| `APP_PAGES_MODE` | `full` | page set (`full`/`minimal`) |
+| `JWT_COOKIE_SECURE` | `1` | cookies over HTTPS only |
+| `JWT_SECRET_KEY` / `JWT_PRIVATE_KEY` | from file | JWT secrets (otherwise created in the DB directory) |
+
+**Note:** `JWT_COOKIE_SECURE=1` requires HTTPS. For local development over plain HTTP (http://localhost:5000) do not set it, otherwise the browser will not store the authentication cookies.
 
 ## UI
 By default, the web page will be available at http://localhost:5000

@@ -1,5 +1,9 @@
 # syntax=docker/dockerfile:1
 
+# Local / personal image: HTTP server for debugging.
+# Minimal page set: application and help only
+# (no landing page and no footer). The production image is Dockerfile.prod.
+
 # Build stage
 FROM python:3.12-slim AS builder
 
@@ -14,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Production stage
+# Runtime stage
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -30,12 +34,16 @@ COPY --from=builder /install /usr/local
 # Copy application files
 COPY . .
 
+# Minimal page set for local runs
+RUN rm -f server/templates/index.html server/templates/footer.html
+
 # Create directory for database persistence
 RUN mkdir -p /app/data
 VOLUME /app/data
 
-# Set environment variable for database path (can be overridden at runtime)
-ENV DATABASE_PATH=/app/data/app.db
+# Set environment variables (can be overridden at runtime)
+ENV DATABASE_PATH=/app/data/app.db \
+    APP_PAGES_MODE=minimal
 
 # Expose the Flask port
 EXPOSE 5000

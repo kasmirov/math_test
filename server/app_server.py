@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect, abort
 from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity, set_access_cookies,
@@ -1101,8 +1101,16 @@ def get_history(is_authenticated=False, user_email=None):
     return jsonify(sessions)
 
 # Статические файлы
+# APP_PAGES_MODE=minimal — для локального/персонального запуска: без заглавной
+# страницы и без футера, только приложение и инструкция.
+PAGES_MODE = os.environ.get('APP_PAGES_MODE', 'full').strip().lower()
+MINIMAL_PAGES = PAGES_MODE == 'minimal'
+
+
 @app.route('/')
 def index():
+    if MINIMAL_PAGES:
+        return redirect('/app')
     return send_from_directory('templates', 'index.html')
 
 
@@ -1117,6 +1125,8 @@ def help():
 
 @app.route('/footer.html')
 def footer():
+    if MINIMAL_PAGES:
+        abort(404)
     return send_from_directory('templates', 'footer.html')
 
 @app.route('/account.html')
