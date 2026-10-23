@@ -45,64 +45,6 @@
         <main>
             <!-- Главный экран -->
             <div class="main-screen" id="mainScreen">
-                <!-- Панель настроек -->
-                <div class="settings-panel" id="settingsPanel" style="display: none;">
-                    <div class="settings-title">Настройки тестирования</div>
-                    <div class="setting-item">
-                        <div>
-                            <div class="setting-brief">Автоотправка при таймауте</div>
-                            <div class="setting-description">Автоматически отправлять ответ при истечении времени</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="autoSubmitOnTimeout">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div>
-                            <div class="setting-brief">Таймаут на ответ</div>
-                            <div class="setting-description">Время в течении которого надо дать ответ</div>
-                        </div>
-                        <div>
-                            <select id="timeoutSelector" class="setting-combo-box">
-                              <option value="auto">auto</option>
-                              <option value="30">30 сек</option>
-                              <option value="60">60 сек</option>
-                              <option value="90">90 сек</option>
-                              <option value="120">2 мин</option>
-                              <option value="300">5 мин</option>
-                              <option value="600">10 мин</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="setting-item">
-                        <div>
-                            <div class="setting-brief">Количество вопросов</div>
-                            <div class="setting-description">Количество вопросов в каждом блоке</div>
-                        </div>
-                        <div>
-                            <select id="numQuestionsSelector" class="setting-combo-box">
-                              <option value="1">1</option>
-                              <option value="3">3</option>
-                              <option value="5">5</option>
-                              <option value="10">10</option>
-                              <option value="15">15</option>
-                              <option value="20">20</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="setting-item">
-                        <div>
-                            <div class="setting-brief">Сброс задания после теста</div>
-                            <div class="setting-description">Очищать выбранные фильтры и блоки заданий после завершения теста</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="clearAfterTestCheckbox">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-
                 <div class="action-buttons">
                     <button class="btn" id="newTestBtn">Начать новый тест</button>
                     <button class="btn btn-secondary" id="workOnErrorsBtn">Работа над ошибками</button>
@@ -184,6 +126,69 @@
             </div>
         </main>
     </div>
+
+    <!-- Панель настроек тестирования (правая боковая панель) -->
+    <aside class="settings-panel" id="settingsPanel" aria-hidden="true" aria-label="Настройки тестирования">
+        <div class="settings-panel-header">
+            <div class="settings-title">Настройки тестирования</div>
+            <button type="button" class="settings-close-btn" id="settingsCloseBtn" aria-label="Закрыть настройки">&times;</button>
+        </div>
+        <div class="settings-panel-body">
+            <div class="setting-item">
+                <div>
+                    <div class="setting-brief">Автоотправка при таймауте</div>
+                    <div class="setting-description">Автоматически отправлять ответ при истечении времени</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="autoSubmitOnTimeout">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-brief">Таймаут на ответ</div>
+                    <div class="setting-description">Время в течении которого надо дать ответ</div>
+                </div>
+                <div>
+                    <select id="timeoutSelector" class="setting-combo-box">
+                      <option value="auto">auto</option>
+                      <option value="30">30 сек</option>
+                      <option value="60">60 сек</option>
+                      <option value="90">90 сек</option>
+                      <option value="120">2 мин</option>
+                      <option value="300">5 мин</option>
+                      <option value="600">10 мин</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-brief">Количество вопросов</div>
+                    <div class="setting-description">Количество вопросов в каждом блоке</div>
+                </div>
+                <div>
+                    <select id="numQuestionsSelector" class="setting-combo-box">
+                      <option value="1">1</option>
+                      <option value="3">3</option>
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="15">15</option>
+                      <option value="20">20</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-brief">Сброс задания после теста</div>
+                    <div class="setting-description">Очищать выбранные фильтры и блоки заданий после завершения теста</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="clearAfterTestCheckbox">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </aside>
 
     <!-- Кнопка "В начало" -->
     <button class="home-btn" id="homeBtn" style="display: none;">⌂</button>

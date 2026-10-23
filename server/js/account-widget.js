@@ -457,6 +457,12 @@ class AccountWidget {
                 border-bottom: none;
             }
 
+            .account-menu-item:disabled {
+                color: #9ca3af;
+                cursor: not-allowed;
+                background: none;
+            }
+
             .account-divider {
                 height: 1px;
                 background: #f1f5f9;
@@ -658,7 +664,8 @@ class AccountWidget {
         let menuItems = [];
 
         if (this.options.showSettings) {
-            menuItems.push('<button class="account-menu-item" data-action="settings">Настройки</button>');
+            const settingsDisabled = this.options.settingsEnabled === false;
+            menuItems.push(`<button class="account-menu-item" data-action="settings"${settingsDisabled ? ' disabled' : ''}>Настройки</button>`);
         }
 
         menuItems.push('<button class="account-menu-item" data-action="account">Аккаунт</button>');
@@ -801,7 +808,7 @@ class AccountWidget {
     handleAccountAction(action, element) {
         switch (action) {
             case 'settings':
-                if (this.options.showSettings && this.options.onSettingsClick) {
+                if (this.options.showSettings && this.options.settingsEnabled !== false && this.options.onSettingsClick) {
                     this.options.onSettingsClick();
                     this.hideDropdown();
                 }
@@ -824,6 +831,18 @@ class AccountWidget {
     showSettings() {
         if (this.options.showSettings && this.options.onSettingsClick) {
             this.options.onSettingsClick();
+        }
+    }
+
+    // Включает/выключает пункт меню "Настройки" (например, пока идёт тест)
+    setSettingsEnabled(enabled) {
+        this.options.settingsEnabled = !!enabled;
+
+        if (!this.dropdown) return;
+
+        const item = this.dropdown.querySelector('.account-menu-item[data-action="settings"]');
+        if (item) {
+            item.disabled = !this.options.settingsEnabled;
         }
     }
 

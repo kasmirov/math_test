@@ -21,6 +21,10 @@ let numOfQuestions = 3;             // Количество вопросов п�
 let autoSubmitOnTimeout = true;     // По умолчанию автоотправка включена
 let clearAfterTest = false;         // Очищать выбранные блоки/фильтры после теста
 
+// Панель настроек: доступна только вне активного теста.
+// Состояние открытия не сохраняется между страницами (по умолчанию панель скрыта).
+let settingsEnabled = true;
+
 // API базовый URL
 const API_BASE_URL = '/api';
 
@@ -30,6 +34,7 @@ const blocksScreen = document.getElementById('blocksScreen');
 const testScreen = document.getElementById('testScreen');
 const statsScreen = document.getElementById('statsScreen');
 const settingsPanel = document.getElementById('settingsPanel');
+const settingsCloseBtn = document.getElementById('settingsCloseBtn');
 const autoSubmitOnTimeoutCheckbox = document.getElementById('autoSubmitOnTimeout');
 const timeoutCombobox = document.getElementById('timeoutSelector');
 const questionsCombobox = document.getElementById('numQuestionsSelector');
@@ -151,6 +156,8 @@ function setupEventListeners() {
 	viewStatsBtn.addEventListener('click', showStatsScreen);
 
 	// Настройки
+	settingsCloseBtn.addEventListener('click', closeSettings);
+
 	autoSubmitOnTimeoutCheckbox.addEventListener('change', function() {
 		autoSubmitOnTimeout = this.checked;
 		saveSettings();
@@ -313,8 +320,45 @@ function saveSettings() {
 	localStorage.setItem(storageKey, JSON.stringify(settings));
 }
 
+function openSettings() {
+	if (!settingsEnabled || !settingsPanel) {
+		return;
+	}
+	settingsPanel.classList.add('open');
+	settingsPanel.setAttribute('aria-hidden', 'false');
+	document.body.classList.add('settings-open');
+}
+
+function closeSettings() {
+	if (!settingsPanel) {
+		return;
+	}
+	settingsPanel.classList.remove('open');
+	settingsPanel.setAttribute('aria-hidden', 'true');
+	document.body.classList.remove('settings-open');
+}
+
 function toggleSettings() {
-	settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+	if (!settingsEnabled || !settingsPanel) {
+		return;
+	}
+	if (settingsPanel.classList.contains('open')) {
+		closeSettings();
+	} else {
+		openSettings();
+	}
+}
+
+// Включает/выключает доступ к панели настроек (например, во время теста).
+// При выключении открытая панель сворачивается.
+function setSettingsEnabled(enabled) {
+	settingsEnabled = !!enabled;
+	if (!settingsEnabled) {
+		closeSettings();
+	}
+	if (typeof accountWidget !== 'undefined' && accountWidget && typeof accountWidget.setSettingsEnabled === 'function') {
+		accountWidget.setSettingsEnabled(settingsEnabled);
+	}
 }
 
 function saveBlocksState() {
@@ -353,6 +397,8 @@ function showMainScreen() {
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'none';
 
+	setSettingsEnabled(true);
+
     // Показываем уведомление о сессии, если она есть
     checkActiveSession();
 
@@ -372,6 +418,8 @@ function showBlocksScreen() {
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'none';
 	filtersContainer.style.display = 'block';
+
+	setSettingsEnabled(true);
 
 	// восстанавливаем selectedBlocks из визуального состояния при первом отображении экрана
 	//syncSelectedBlocksFromUI();
@@ -483,6 +531,9 @@ function showTestScreen() {
 	testScreen.style.display = 'block';
 	statsScreen.style.display = 'none';
 
+	// Во время теста панель настроек недоступна и сворачивается
+	setSettingsEnabled(false);
+
 	// Скрываем уведомление при переходе на экран теста
     hideSessionNotification();
 
@@ -508,6 +559,8 @@ async function showStatsScreen() {
     errorsBlocksList.style.display = 'none';
 	testScreen.style.display = 'none';
 	statsScreen.style.display = 'block';
+
+	setSettingsEnabled(true);
 
 	// Показываем кнопку "В начало"
 	homeBtn.style.display = 'flex';
@@ -769,8 +822,11 @@ async function startTest(workOnMistakes) {
 		return;
 	}
 
-    // Чистим активную сессию если есть
-    clearSession();
+	// Чистим активную сессию если есть
+	clearSession();
+
+	// Во время теста панель настроек недоступна и сворачивается
+	setSettingsEnabled(false);
 
 	// Показываем экран теста и настраиваем начальное состояние
 	blocksScreen.style.display = 'none';
