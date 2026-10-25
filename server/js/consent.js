@@ -1,18 +1,30 @@
-// Уведомление об использовании cookie и обработке персональных данных (152-ФЗ).
+// Уведомление об использовании файлов cookie.
+// Согласие на обработку персональных данных оформляется в форме регистрации
+// (см. /consent); баннер лишь информирует о ПД и запрашивает согласие на cookie.
 // Показывается новым пользователям; при отказе cookie не сохраняются, показ
 // повторяется только в рамках текущей сессии.
+//
+// Источник истины — cookie `cookie_consent_v1`: очистка cookie браузером
+// сбрасывает согласие, и баннер показывается снова.
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'pd_consent_v1';
+    const COOKIE_KEY = 'cookie_consent_v1';   // согласие на использование cookie
     const SESSION_DECLINE_KEY = 'pd_consent_declined';
+    const ONE_YEAR = 365 * 24 * 60 * 60;
+
+    function readCookie(name) {
+        try {
+            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+            return match ? decodeURIComponent(match[1]) : null;
+        } catch (e) {
+            return null;
+        }
+    }
 
     function hasConsent() {
-        try {
-            return localStorage.getItem(STORAGE_KEY) === 'accepted';
-        } catch (e) {
-            return false;
-        }
+        return readCookie(COOKIE_KEY) === 'accepted';
     }
 
     function wasDeclined() {
@@ -25,19 +37,13 @@
 
     function storeConsent() {
         try {
-            localStorage.setItem(STORAGE_KEY, 'accepted');
-        } catch (e) {
-            // localStorage может быть недоступен (приватный режим) — используем cookie
-        }
-        try {
-            document.cookie = STORAGE_KEY + '=accepted; max-age=' + (365 * 24 * 60 * 60) +
-                '; path=/; SameSite=Lax';
+            document.cookie = COOKIE_KEY + '=accepted; max-age=' + ONE_YEAR + '; path=/; SameSite=Lax';
         } catch (e) {
             // ignore
         }
     }
 
-    // Для зарегистрированного пользователя сохраняем согласие и дату в БД.
+    // Для зарегистрированного пользователя сохраняем согласие на cookie и дату в БД.
     // Для анонимных запрос вернёт 401 — это ожидаемо и молча игнорируется.
     async function persistForRegisteredUser() {
         try {
@@ -58,13 +64,14 @@
         banner.setAttribute('role', 'dialog');
         banner.setAttribute('aria-label', 'Уведомление об использовании cookie');
         banner.innerHTML = `
-            <p>Мы используем файлы cookie. Используя сайт, вы предоставляете согласие на обработку
-            ваших персональных данных. Для работы части функций сайта (вход, профили, статистика)
-            необходимы cookie. Подробнее — в
-            <a href="${legal.policy_url}" target="_blank" rel="noopener">Политике обработки персональных данных</a>.</p>
+            <p>Мы используем файлы cookie. Для работы части функций сайта (вход, профили, статистика)
+            они необходимы. Порядок обработки персональных данных описан в
+            <a href="${legal.policy_url}" target="_blank" rel="noopener">Политике обработки персональных данных</a>;
+            согласие на обработку персональных данных оформляется при регистрации
+            (<a href="${legal.consent_url}" target="_blank" rel="noopener">текст согласия</a>).</p>
             <label class="cookie-consent-check">
                 <input type="checkbox" id="cookieConsentCheck">
-                <span>Даю согласие на обработку своих персональных данных и использование файлов cookie</span>
+                <span>Согласен(на) на использование файлов cookie</span>
             </label>
             <div class="cookie-consent-actions">
                 <button type="button" class="btn" id="cookieConsentAccept" disabled>Согласен</button>
@@ -79,16 +86,16 @@
         document.body.appendChild(banner);
         requestAnimationFrame(() => banner.classList.add('show'));
 
-        const check = banner.querySelector('#cookieConsentCheck');
+        const cookieCheck = banner.querySelector('#cookieConsentCheck');
         const acceptBtn = banner.querySelector('#cookieConsentAccept');
         const declineBtn = banner.querySelector('#cookieConsentDecline');
 
-        check.addEventListener('change', function () {
-            acceptBtn.disabled = !check.checked;
+        cookieCheck.addEventListener('change', function () {
+            acceptBtn.disabled = !cookieCheck.checked;
         });
 
         acceptBtn.addEventListener('click', async function () {
-            if (!check.checked) {
+            if (!cookieCheck.checked) {
                 return;
             }
             storeConsent();
@@ -97,8 +104,9 @@
         });
 
         declineBtn.addEventListener('click', function () {
-            // Пользователь не согласен: cookie не сохраняем, повторный показ —
-            // только в текущей сессии.
+            // Пользователь не согласен: согласие не сохраняем, повторный показ —
+            // только в текущей сессии. Файлы cookie (кроме строго необходимых
+            // для входа) не устанавливаются.
             try {
                 sessionStorage.setItem(SESSION_DECLINE_KEY, '1');
             } catch (e) {
@@ -118,7 +126,7 @@
             return;
         }
 
-        let legal = { enabled: false, policy_url: '/policy' };
+        let legal = { enabled: false, policy_url: '/policy', consent_url: '/consent' };
         try {
             const response = await fetch('/api/legal');
             if (response.ok) {

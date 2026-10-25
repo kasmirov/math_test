@@ -1165,13 +1165,16 @@ class AccountWidget {
             return;
         }
 
-        // Если пользователь ранее принял уведомление об использовании cookie —
-        // фиксируем это согласие при регистрации.
+        // Согласие на cookie фиксируется при регистрации только если пользователь
+        // действительно его дал. Источник истины — cookie `cookie_consent_v1`
+        // (очистка cookie браузером сбрасывает согласие).
         let cookiesAgreement = false;
         try {
-            cookiesAgreement = localStorage.getItem('pd_consent_v1') === 'accepted';
+            const escaped = 'cookie_consent_v1'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+            cookiesAgreement = !!match && decodeURIComponent(match[1]) === 'accepted';
         } catch (e) {
-            // localStorage недоступен
+            cookiesAgreement = false;
         }
 
         try {

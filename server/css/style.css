@@ -1615,8 +1615,12 @@ body.has-notification .home-btn {
     gap: 8px;
     font-size: 14px;
     line-height: 1.4;
-    margin: 10px 0 16px;
+    margin: 10px 0 0;
     cursor: pointer;
+}
+
+.cookie-consent-check a {
+    color: #a0c0f0;
 }
 
 .cookie-consent-check input {
@@ -1631,6 +1635,7 @@ body.has-notification .home-btn {
     gap: 10px;
     justify-content: flex-end;
     flex-wrap: wrap;
+    margin-top: 16px;
 }
 
 .cookie-consent-actions .btn {
