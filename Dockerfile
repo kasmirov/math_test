@@ -2,7 +2,6 @@
 
 # Local / personal image: HTTP server for debugging.
 # Minimal page set: application and help only
-# (no landing page and no footer). The production image is Dockerfile.prod.
 
 # Build stage
 FROM python:3.12-slim AS builder
@@ -34,8 +33,10 @@ COPY --from=builder /install /usr/local
 # Copy application files
 COPY . .
 
-# Minimal page set for local runs
-RUN rm -f server/templates/index.html server/templates/footer.html
+# Minimal page set for local runs:
+# без заглавной страницы, футера и документов/баннера по персональным данным
+RUN rm -f server/templates/index.html server/templates/footer.html \
+    server/templates/policy.html server/templates/consent.html server/js/consent.js
 
 # Create directory for database persistence
 RUN mkdir -p /app/data

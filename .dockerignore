@@ -1,4 +1,6 @@
 __pycache__
+.idea/
+.kilo/
 *.pyc
 *.pyo
 *.pyd
@@ -9,6 +11,7 @@ env/
 venv/
 .venv
 *.egg-info
+data/
 dist/
 build/
 .mypy_cache
@@ -18,7 +21,7 @@ build/
 .gitignore
 .dockerignore
 Dockerfile
-.dockerignore
+Dockerfile.prod
 README.md
 README_RU.md
 LICENSE
@@ -26,3 +29,7 @@ LICENSE
 assets
 console
 *.egg
+*.db
+.jwt_private_key
+.jwt_secret_key
+swagger.yaml

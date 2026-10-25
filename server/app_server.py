@@ -1170,18 +1170,24 @@ def legal_config():
 @app.route('/policy')
 def policy():
     """Политика в отношении обработки персональных данных."""
+    if MINIMAL_PAGES:
+        abort(404)
     return render_template('policy.html', **get_operator_info())
 
 
 @app.route('/consent')
 def consent():
     """Текст согласия на обработку персональных данных."""
+    if MINIMAL_PAGES:
+        abort(404)
     return render_template('consent.html', **get_operator_info())
 
 
 @app.route('/privacy')
 def privacy():
     """Политика конфиденциальности объединена с политикой обработки ПД."""
+    if MINIMAL_PAGES:
+        abort(404)
     return redirect('/policy', code=301)
 
 
@@ -1248,6 +1254,13 @@ def serve_css(path):
 
 @app.route('/js/<path:path>')
 def serve_js(path):
+    if MINIMAL_PAGES and path.replace('\\', '/') == 'consent.js':
+        # В минимальном (локальном) образе файл не поставляется: отдаём пустой
+        # скрипт, чтобы не было 404 в консоли браузера.
+        return app.response_class(
+            '/* consent.js не входит в минимальный образ */\n',
+            mimetype='application/javascript'
+        )
     return send_from_directory('js', path)
 
 # Обработка CORS для разработки
