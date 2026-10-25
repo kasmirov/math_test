@@ -119,8 +119,15 @@ Certificates can also be placed directly at `/etc/nginx/certs/fullchain.pem` and
 | `APP_PAGES_MODE` | `full` | page set (`full`/`minimal`) |
 | `JWT_COOKIE_SECURE` | `1` | cookies over HTTPS only |
 | `JWT_SECRET_KEY` / `JWT_PRIVATE_KEY` | from file | JWT secrets (otherwise created in the DB directory) |
+| `OPERATOR_NAME` | `Владелец сайта math_test` | personal data operator (152-FZ), shown on `/policy` and `/consent` |
+| `OPERATOR_ADDRESS` | `не указан` | operator address |
+| `OPERATOR_EMAIL` | `не указан` | contact for personal-data requests |
+| `OPERATOR_URL` | (empty) | operator website |
+| `POLICY_DATE` | `2026-01-01` | revision date of the legal documents |
 
 **Note:** `JWT_COOKIE_SECURE=1` requires HTTPS. For local development over plain HTTP (http://localhost:5000) do not set it, otherwise the browser will not store the authentication cookies.
+
+**152-FZ (personal data):** before going live, set the `OPERATOR_*` variables to the actual operator details and `POLICY_DATE` to the revision date. They are rendered on the `/policy` (политика обработки персональных данных) and `/consent` (согласие) pages, which are linked from the footer and the registration form. Public pages show a cookie/consent notice to new visitors; the consent flag and its date are stored per user in the database.
 
 ## UI
 By default, the web page will be available at http://localhost:5000

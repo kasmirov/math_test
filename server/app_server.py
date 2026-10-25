@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, send_from_directory, redirect, abort
+from flask import Flask, request, jsonify, send_from_directory, redirect, abort, render_template
 from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity, set_access_cookies,
@@ -21,7 +21,7 @@ from core.db_func import create_session, get_anonymous_profile, get_user_id_by_e
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
     get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection, \
     get_session_history, delete_current_session
-from core.units import Units
+from core.units import Units, parse_units_input
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -92,6 +92,24 @@ app.config['JWT_COOKIE_SAMESITE'] = 'Lax'  # Защита от CSRF: cookie не
 app.config['JWT_COOKIE_DOMAIN'] = None
 
 jwt = JWTManager(app)
+
+
+def _register_jwt_error_handlers(jwt_instance):
+    """Регистрирует обработчики ошибок JWT с логированием попыток."""
+
+    @jwt_instance.invalid_token_loader
+    def invalid_token_callback(error_string):
+        app.logger.warning("Invalid token attempt: %s", error_string)
+        # Можно также отслеживать IP и количество попыток
+        return jsonify({'error': 'Invalid token'}), 401
+
+    @jwt_instance.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        app.logger.info("Token expired for identity: %s", jwt_payload.get('sub'))
+        return jsonify({'error': 'Token has expired'}), 401
+
+
+_register_jwt_error_handlers(jwt)
 
 
 def validate_password(password):
@@ -192,6 +210,16 @@ def register():
         if not validate_email(data['email']):
             return jsonify({'error': 'Invalid email format'}), 400
 
+        # Персональные данные: для публичного сайта согласие обязательно (152-ФЗ).
+        personal_agreement = bool(data.get('personal_data_agreement', False))
+        cookies_agreement = bool(data.get('cookies_agreement', False))
+        if not MINIMAL_PAGES and not personal_agreement:
+            return jsonify({
+                'error': 'Требуется согласие на обработку персональных данных'
+            }), 400
+
+        now = datetime.now().isoformat(timespec='seconds')
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
@@ -210,15 +238,18 @@ def register():
 
             # Вставляем нового пользователя
             cursor.execute('''
-                INSERT INTO users (email, username, password_hash, cookies_agreement, 
-                personal_data_agreement, test_results_mailing, obligatory_mailing, service_news)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (email, username, password_hash, cookies_agreement,
+                cookies_agreement_date, personal_data_agreement, personal_data_agreement_date,
+                test_results_mailing, obligatory_mailing, service_news)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 data['email'],
                 data.get('username', data['email']),
                 password_hash,
-                data.get('cookies_agreement', False),
-                data.get('personal_data_agreement', False),
+                cookies_agreement,
+                now if cookies_agreement else None,
+                personal_agreement,
+                now if personal_agreement else None,
                 data.get('test_results_mailing', False),
                 data.get('obligatory_mailing', False),
                 data.get('service_news', False)
@@ -399,31 +430,35 @@ def update_account():
             if not user_row:
                 return jsonify({'error': 'User not found'}), 404
 
-            # Подготавливаем данные для обновления
+            # Подготавливаем данные для обновления.
+            # Whitelist полей с функциями преобразования значения (None — как есть).
+            allowed_fields = {
+                'username': None,
+                'preferences': json.dumps,
+                'cookies_agreement': bool,
+                'personal_data_agreement': bool,
+                'test_results_mailing': bool,
+                'obligatory_mailing': bool,
+                'service_news': bool,
+            }
+
+            # При изменении согласий фиксируем дату их простановки/отзыва.
+            consent_date_fields = {
+                'cookies_agreement': 'cookies_agreement_date',
+                'personal_data_agreement': 'personal_data_agreement_date',
+            }
+
+            now = datetime.now().isoformat(timespec='seconds')
             update_fields = []
             update_values = []
-
-            if 'username' in data:
-                update_fields.append('username = ?')
-                update_values.append(data['username'])
-            if 'preferences' in data:
-                update_fields.append('preferences = ?')
-                update_values.append(json.dumps(data['preferences']))
-            if 'cookies_agreement' in data:
-                update_fields.append('cookies_agreement = ?')
-                update_values.append(bool(data['cookies_agreement']))
-            if 'personal_data_agreement' in data:
-                update_fields.append('personal_data_agreement = ?')
-                update_values.append(bool(data['personal_data_agreement']))
-            if 'test_results_mailing' in data:
-                update_fields.append('test_results_mailing = ?')
-                update_values.append(bool(data['test_results_mailing']))
-            if 'obligatory_mailing' in data:
-                update_fields.append('obligatory_mailing = ?')
-                update_values.append(bool(data['obligatory_mailing']))
-            if 'service_news' in data:
-                update_fields.append('service_news = ?')
-                update_values.append(bool(data['service_news']))
+            for field, converter in allowed_fields.items():
+                if field in data:
+                    value = converter(data[field]) if converter else data[field]
+                    update_fields.append(f'{field} = ?')
+                    update_values.append(value)
+                    if field in consent_date_fields:
+                        update_fields.append(f'{consent_date_fields[field]} = ?')
+                        update_values.append(now if value else None)
 
             if not update_fields:
                 return jsonify({'error': 'No fields to update'}), 400
@@ -883,27 +918,12 @@ def submit_answer(session_uuid, is_authenticated=False, user_email=None):
     if 'answer' not in data:
         return jsonify({"error": "Ответ не предоставлен"}), 400
 
-    user_input = data['answer'] #.lower()
-    user_input = user_input.strip()
+    user_input = data['answer'].strip()
 
     if isinstance(correct_answer, Units):
-        # Для генератора конвертации правильных ответов может быть несколько
-        # Нормализуем ввод пользователя
-        #user_input = user_input.lower()
-        user_input = user_input.replace(',', '.')  # Заменяем запятые на точки
-
-        # Regexp
-        pattern = r"(\d*.?\d+)\s*([a-zA-Zа-яА-Я]+)"
-        match = re.match(pattern, user_input)
-        if not match:
-            print("Некорректный ввод")
-        else:
-            value = float(match.group(1).replace(' ', ''))
-            units = match.group(2)
-            try:
-                user_input = Units(value, units)
-            except ValueError as e:
-                print("Некорректный ввод")
+        # Правильный ответ для генератора конвертации может быть задан в других
+        # единицах измерения — разбираем ответ пользователя в Units для сравнения.
+        user_input = parse_units_input(user_input)
 
     # Check solution
     is_correct = user_input == correct_answer
@@ -1025,7 +1045,11 @@ def get_stats():
             continue
 
         section_key = gen.get_key()
-        block_id = next(x['id'] for x in question_blocks if x['section_key'] == section_key)
+        try:
+            block_id = next(x['id'] for x in question_blocks if x['section_key'] == section_key)
+        except StopIteration:
+            # Генератор есть, но соответствующего блока нет — пропускаем раздел
+            continue
 
         stats.append({
             "block_id": block_id,
@@ -1107,6 +1131,60 @@ PAGES_MODE = os.environ.get('APP_PAGES_MODE', 'full').strip().lower()
 MINIMAL_PAGES = PAGES_MODE == 'minimal'
 
 
+# ---------------------------------------------------------------------------
+# Персональные данные: оператор и правовые страницы (152-ФЗ)
+# ---------------------------------------------------------------------------
+
+# Реквизиты оператора персональных данных берутся из окружения, чтобы их можно
+# было задать при запуске боевого контейнера, не меняя образ.
+OPERATOR_ENV_DEFAULTS = {
+    'OPERATOR_NAME': 'Владелец сайта math_test',
+    'OPERATOR_ADDRESS': 'не указан',
+    'OPERATOR_EMAIL': 'не указан',
+    'OPERATOR_URL': '',
+}
+
+
+def get_operator_info():
+    """Сведения об операторе персональных данных из переменных окружения."""
+    return {
+        'operator_name': os.environ.get('OPERATOR_NAME') or OPERATOR_ENV_DEFAULTS['OPERATOR_NAME'],
+        'operator_address': os.environ.get('OPERATOR_ADDRESS') or OPERATOR_ENV_DEFAULTS['OPERATOR_ADDRESS'],
+        'operator_email': os.environ.get('OPERATOR_EMAIL') or OPERATOR_ENV_DEFAULTS['OPERATOR_EMAIL'],
+        'operator_url': os.environ.get('OPERATOR_URL') or OPERATOR_ENV_DEFAULTS['OPERATOR_URL'],
+        'policy_date': os.environ.get('POLICY_DATE') or '2026-01-01',
+    }
+
+
+@app.route('/api/legal', methods=['GET'])
+def legal_config():
+    """Публичная конфигурация правовых документов для фронтенда."""
+    return jsonify({
+        'enabled': not MINIMAL_PAGES,
+        'operator_name': get_operator_info()['operator_name'],
+        'policy_url': '/policy',
+        'consent_url': '/consent',
+    })
+
+
+@app.route('/policy')
+def policy():
+    """Политика в отношении обработки персональных данных."""
+    return render_template('policy.html', **get_operator_info())
+
+
+@app.route('/consent')
+def consent():
+    """Текст согласия на обработку персональных данных."""
+    return render_template('consent.html', **get_operator_info())
+
+
+@app.route('/privacy')
+def privacy():
+    """Политика конфиденциальности объединена с политикой обработки ПД."""
+    return redirect('/policy', code=301)
+
+
 @app.route('/')
 def index():
     if MINIMAL_PAGES:
@@ -1127,7 +1205,7 @@ def help():
 def footer():
     if MINIMAL_PAGES:
         abort(404)
-    return send_from_directory('templates', 'footer.html')
+    return render_template('footer.html', **get_operator_info())
 
 @app.route('/account.html')
 @jwt_required()
@@ -1203,18 +1281,6 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
-
-# Логирование попыток использования невалидных токенов
-@jwt.invalid_token_loader
-def invalid_token_callback(error_string):
-    app.logger.warning(f"Invalid token attempt: {error_string}")
-    # Можно также отслеживать IP и количество попыток
-    return jsonify({'error': 'Invalid token'}), 401
-
-@jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
-    app.logger.info(f"Token expired for identity: {jwt_payload.get('sub')}")
-    return jsonify({'error': 'Token has expired'}), 401
 
 
 def main():

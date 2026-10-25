@@ -47,8 +47,8 @@ venv.bak/
 # VSCode
 .vscode/
 
-# default app db
-app.db
+# app db
+*.db
 
 # persisted jwt secrets
 .jwt_secret_key

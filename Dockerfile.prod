@@ -45,7 +45,12 @@ ENV DATABASE_PATH=/app/data/app.db \
     TLS_CERT_FILE=/etc/nginx/certs/fullchain.pem \
     TLS_KEY_FILE=/etc/nginx/certs/privkey.pem \
     GUNICORN_BIND=127.0.0.1:8000 \
-    GUNICORN_WORKERS=3
+    GUNICORN_WORKERS=3 \
+    OPERATOR_NAME="" \
+    OPERATOR_ADDRESS="" \
+    OPERATOR_EMAIL="" \
+    OPERATOR_URL="" \
+    POLICY_DATE=""
 
 COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY deploy/entrypoint.sh /usr/local/bin/entrypoint.sh

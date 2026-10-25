@@ -1,6 +1,5 @@
 from datetime import datetime
 import os
-import re
 import time
 
 from generators.generator_add_sub import AdditionSubtractionGenerator
@@ -23,7 +22,7 @@ from generators.generator_clock import ClockGeneratorSimple, ClockGeneratorHard
 from core.db_func import add_question_to_session, get_mistakes, get_history, get_questions_number, update_history, \
     get_question, update_current_question_start_time, get_current_question_start_time, increase_current_question_idx, \
     update_mistakes
-from core.units import Units
+from core.units import Units, parse_units_input
 
 # Регистрация генераторов
 # TODO Переделать в кэш от хэша лимитов
@@ -34,31 +33,38 @@ DEFAULT_TIMEOUT = 1000
 # Путь к корню проекта для ресурсов (не зависит от текущего каталога)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def _get_static_generators(latex=False):
+    """Создать список всех доступных экземпляров генераторов задач."""
+    return [
+        AdditionSubtractionGenerator(latex),
+        MultiplicationGenerator(latex),
+        DivisionGenerator(latex),
+        EquationGenerator(latex),
+        PriorityOperationsGenerator(latex),
+        PriorityOperationsGenerator3rd(),
+        PriorityOperationsGenerator4th(),
+        ComparisonGenerator(),
+        ConversionGenerator(),
+        YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "2nd_grade.yaml")),
+        YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "3rd_grade.yaml")),
+        YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "4th_grade.yaml")),
+        GeometryFigurePropertiesGenerator(),
+        FractionGenerator(),
+        ClockGeneratorSimple(),
+        ClockGeneratorHard(),
+        FractionGeneratorGeom(),
+        TimeArithmeticGenerator(),
+        RomanConversionGenerator(latex),
+        RomanArithmeticGenerator(latex),
+    ]
+
+
 def explore_static_generators(latex=False, has_text_mode=None):
     global GENERATORS
     GENERATORS = {
-        gen.get_key(): gen for gen in [
-            AdditionSubtractionGenerator(latex),
-            MultiplicationGenerator(latex),
-            DivisionGenerator(latex),
-            EquationGenerator(latex),
-            PriorityOperationsGenerator(latex),
-            PriorityOperationsGenerator3rd(),
-            PriorityOperationsGenerator4th(),
-            ComparisonGenerator(),
-            ConversionGenerator(),
-            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "2nd_grade.yaml")),
-            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "3rd_grade.yaml")),
-            YamlProblemGenerator(os.path.join(PROJECT_ROOT, "generators", "4th_grade.yaml")),
-            GeometryFigurePropertiesGenerator(),
-            FractionGenerator(),
-            ClockGeneratorSimple(),
-            ClockGeneratorHard(),
-            FractionGeneratorGeom(),
-            TimeArithmeticGenerator(),
-            RomanConversionGenerator(latex),
-            RomanArithmeticGenerator(latex),
-        ] if has_text_mode is None or gen.has_text_mode() == has_text_mode
+        gen.get_key(): gen
+        for gen in _get_static_generators(latex)
+        if has_text_mode is None or gen.has_text_mode() == has_text_mode
     }
 
 def get_generators():
@@ -179,23 +185,7 @@ def run_test(profile, session_uuid, save_history: bool = True):
 
         # Convert input to expected format (Units)
         if isinstance(correct_answer, Units):
-            # Для генератора конвертации правильных ответов может быть несколько
-            # Нормализуем ввод пользователя
-            user_input = user_input.lower()
-            user_input = user_input.replace(',', '.')  # Заменяем запятые на точки
-
-            # Regexp
-            pattern = r"(\d*.?\d+)\s*([a-zA-Zа-яА-Я]+)"
-            match = re.match(pattern, user_input)
-            if not match:
-                print("Некорректный ввод")
-            else:
-                value = float(match.group(1).replace(' ', ''))
-                units = match.group(2)
-                try:
-                    user_input = Units(value, units)
-                except ValueError as e:
-                    print("Некорректный ввод")
+            user_input = parse_units_input(user_input)
 
         # Check solution
         is_correct = user_input == correct_answer

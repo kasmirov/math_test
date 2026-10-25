@@ -1,4 +1,5 @@
 import json
+import re
 from abc import ABC
 from typing import Dict, Any
 from functools import total_ordering
@@ -66,31 +67,34 @@ class Units(ABC):
 
     # TODO Пофиксить ветку когда не выставлено ни одного значения value
     def __str__(self):
-        value = 10e10
-        unit = ''
-        for u in self.get_units():
-            v = self.to(u)
-            if v == int(v) and v < value:
-                value = v
-                unit = u
+        value, unit = self._find_best_representation()
         return f"{value:.0f} {unit}"
 
     def __repr__(self):
-        value = 20e10
-        unit = ''
+        value, unit = self._find_best_representation()
+        return f"{value:.0f} {unit}"
+
+    def _find_best_representation(self):
+        """Подобрать наиболее компактное представление величины.
+
+        Возвращает кортеж (value, unit) — значение в наиболее мелкой единице,
+        в которой оно выражается целым числом.
+        """
+        best_value = float('inf')
+        best_unit = ''
         for u in self.get_units():
             v = self.to(u)
-            if v == int(v) and v < value:
-                value = v
-                unit = u
-        return f"{value:.0f} {unit}"
+            if v == int(v) and v < best_value:
+                best_value = v
+                best_unit = u
+        return best_value, best_unit
 
     def get_base_type(self):
         '''
         Наименьшая неделимая величина измерения
         '''
         prev_name = ''
-        prev_coef = 10e10
+        prev_coef = float('inf')
         if not hasattr(self, "table"):
             raise ValueError(f"Unknown unit")
         for name in self.table:
@@ -147,7 +151,7 @@ class Weight(Units):
     def __init__(self, value = 0, unit = 'г'):
         super().__init__(value, unit)
 
-    #@staticmethod
+    @staticmethod
     def get_units():
         """
         Список величин
@@ -159,7 +163,7 @@ class Length(Units):
     def __init__(self, value = 0, unit = 'мм'):
         super().__init__(value, unit)
 
-    #@staticmethod
+    @staticmethod
     def get_units():
         """
         Список величин
@@ -171,10 +175,34 @@ class Volume(Units):
     def __init__(self, value = 0, unit = 'л'):
         super().__init__(value, unit)
 
-    #@staticmethod
+    @staticmethod
     def get_units():
         """
         Список величин
         """
         l = [k for k in CONV_TABLE['Объем']]
         return l
+
+
+# Единый шаблон для разбора ответа вида "<число> <единица>" (например, "5 кг")
+UNITS_INPUT_PATTERN = re.compile(r"(\d*.?\d+)\s*([a-zA-Zа-яА-Я]+)")
+
+
+def parse_units_input(user_input: str):
+    """Разобрать ответ пользователя в объект Units.
+
+    Нормализует ввод (регистр, запятая -> точка) и пытается построить Units.
+    Возвращает объект Units при успехе, иначе — исходную строку, чтобы
+    вызывающий код мог сравнить её с правильным ответом как обычную строку.
+    """
+    normalized = user_input.lower().replace(',', '.')
+    match = UNITS_INPUT_PATTERN.match(normalized)
+    if not match:
+        return normalized
+
+    value = float(match.group(1).replace(' ', ''))
+    unit = match.group(2)
+    try:
+        return Units(value, unit)
+    except ValueError:
+        return normalized

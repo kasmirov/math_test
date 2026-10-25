@@ -86,6 +86,9 @@ class AccountWidget {
         this.dropdown = null;
         this._listenerContainer = null;
         this._documentListenersAttached = false;
+        // Показывать ли согласие на обработку ПД в форме регистрации.
+        // По умолчанию true (публичный сайт); уточняется через /api/legal.
+        this.legalEnabled = true;
 
         // Сохраняем экземпляр как статическое свойство
         AccountWidget.instance = this;
@@ -249,6 +252,7 @@ class AccountWidget {
         this.render();
         this.setupEventListeners();
         this.startTokenMonitoring();
+        this.loadLegalConfig();
 
         // Сначала обновляем UI с восстановленным состоянием
         if (this.currentUser) {
@@ -268,6 +272,25 @@ class AccountWidget {
                 this.updateUI();
             }
         });
+    }
+
+    // Узнаём у сервера, нужно ли показывать согласие на обработку ПД
+    // (в минимальном/локальном режиме оно не требуется).
+    async loadLegalConfig() {
+        try {
+            const response = await fetch((this.options.apiBaseUrl || '') + '/legal');
+            if (response.ok) {
+                const config = await response.json();
+                this.legalEnabled = config.enabled !== false;
+
+                // Если форма авторизации уже открыта — обновим разметку.
+                if (this.dropdown && this.dropdown.classList.contains('show') && !this.currentUser) {
+                    this.dropdown.innerHTML = this.getAuthHTML();
+                }
+            }
+        } catch (e) {
+            // Оставляем значение по умолчанию (true).
+        }
     }
 
     createStyles() {
@@ -425,6 +448,32 @@ class AccountWidget {
             .auth-form button:disabled {
                 background: #94a3b8;
                 cursor: not-allowed;
+            }
+
+            .auth-consent-check {
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+                font-size: 12px;
+                line-height: 1.4;
+                color: #4b5563;
+                cursor: pointer;
+            }
+
+            .auth-consent-check input[type="checkbox"] {
+                width: 15px;
+                height: 15px;
+                padding: 0;
+                margin: 2px 0 0;
+                border-radius: 3px;
+                flex-shrink: 0;
+            }
+
+            .auth-consent-link {
+                font-size: 12px;
+                color: #3b82f6;
+                text-decoration: underline;
+                word-break: break-word;
             }
 
             .account-menu {
@@ -654,6 +703,13 @@ class AccountWidget {
                             <input type="email" placeholder="Email" required id="regEmail">
                             <input type="text" placeholder="Имя пользователя" required id="regUsername">
                             <input type="password" placeholder="Пароль" required id="regPassword">
+                            ${this.legalEnabled ? `
+                            <label class="auth-consent-check">
+                                <input type="checkbox" id="regPersonalDataAgreement" required>
+                                <span>Даю согласие на обработку своих персональных данных</span>
+                            </label>
+                            <a class="auth-consent-link" href="/consent" target="_blank" rel="noopener">Согласие на обработку персональных данных</a>
+                            ` : ''}
                             <button type="submit">Зарегистрироваться</button>
                         </form>
                     </div>
@@ -1091,22 +1147,64 @@ class AccountWidget {
         const email = this.container?.querySelector('#regEmail')?.value;
         const username = this.container?.querySelector('#regUsername')?.value;
         const password = this.container?.querySelector('#regPassword')?.value;
+        const consentCheckbox = this.container?.querySelector('#regPersonalDataAgreement');
+        const personalDataAgreement = !!(consentCheckbox && consentCheckbox.checked);
 
         if (!email || !username || !password) {
             this.showAlert('error', 'Заполните все поля', 'register-tab');
             return;
         }
 
-        if (password.length < 6) {
-            this.showAlert('error', 'Пароль должен быть не менее 6 символов', 'register-tab');
+        if (password.length < 8) {
+            this.showAlert('error', 'Пароль должен быть не менее 8 символов', 'register-tab');
             return;
+        }
+
+        if (consentCheckbox && consentCheckbox.required && !personalDataAgreement) {
+            this.showAlert('error', 'Необходимо согласие на обработку персональных данных', 'register-tab');
+            return;
+        }
+
+        // Если пользователь ранее принял уведомление об использовании cookie —
+        // фиксируем это согласие при регистрации.
+        let cookiesAgreement = false;
+        try {
+            cookiesAgreement = localStorage.getItem('pd_consent_v1') === 'accepted';
+        } catch (e) {
+            // localStorage недоступен
         }
 
         try {
             const result = await this.makeRequest('/auth/register', {
                 method: 'POST',
-                body: JSON.stringify({ email, username, password })
+                body: JSON.stringify({
+                    email,
+                    username,
+                    password,
+                    personal_data_agreement: personalDataAgreement,
+                    cookies_agreement: cookiesAgreement
+                })
             });
+
+            if (result && result.user) {
+                this.currentUser = result.user;
+
+                try {
+                    const accountData = await this.makeRequest('/account');
+                    if (accountData && accountData.profiles) {
+                        this.profiles = accountData.profiles;
+                        this.currentProfile = this.profiles[0] || null;
+                    }
+                } catch (e) {
+                    await this.loadProfiles();
+                }
+
+                this.saveToStorage();
+                await this.onAuthSuccess();
+                this.options.onLogin(this.currentUser);
+                this.container.querySelector('#registerForm')?.reset();
+                this.hideDropdown();
+            }
         } catch (error) {
             this.showAlert('error', error.message, 'register-tab');
         }
