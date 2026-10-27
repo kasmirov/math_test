@@ -8,29 +8,30 @@
     <meta name="robots" content="noindex, follow">
     <link rel="stylesheet" href="./css/style.css">
     <style>
-        .legal-page {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px 0 40px;
-            line-height: 1.6;
-            color: #333;
+        /* Стиль как на странице инструкции (/help) */
+        .instruction-block {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .legal-page h1 {
+        .instruction-block h2 {
             color: var(--primary-color);
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
         }
-        .legal-page h2 {
-            color: var(--primary-color);
-            margin: 28px 0 10px;
-            font-size: 1.25rem;
-        }
-        .legal-page p,
-        .legal-page li {
+        .instruction-block p,
+        .instruction-block li {
             margin-bottom: 8px;
+            line-height: 1.6;
         }
-        .legal-page ul {
-            padding-left: 22px;
-            margin-bottom: 10px;
+        .instruction-block ul {
+            margin-left: 25px;
+            margin-bottom: 20px;
+            color: #333;
         }
         .legal-meta {
             color: #666;
@@ -47,21 +48,25 @@
     </style>
 </head>
 <body>
-    <header style="background-color: #1e293b; margin-bottom: 0;">
-        <div class="container2">
-            <div class="logo" style="flex-shrink: 0;"><a href="/" style="color: inherit; text-decoration: none;">Математические тесты</a></div>
+    <div class="container">
+        <header>
+            <div class="logo" id="pageTitle">Математические тесты</div>
             <nav class="main-nav">
                 <a href="/">Главная</a>
                 <a href="/help">Инструкция</a>
-                <a href="/policy">Политика обработки ПД</a>
+                <a href="https://github.com/kasmirov/math_test" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/kasmirov/math_test/issues" target="_blank" rel="noopener">Сообщить о проблеме</a>
+                <a href="/app" class="btn">Начать тест</a>
+                <div class="user-menu-container" id="newMenu">
+                    <!-- Виджет будет вставлен здесь -->
+                </div>
             </nav>
-        </div>
-    </header>
+        </header>
 
-    <main>
-        <div class="container">
-            <div class="legal-page">
-                <h1>Согласие на обработку персональных данных</h1>
+        <main>
+            <h1 style="color: var(--primary-color); margin: 30px 0; padding-left: 20px;">Согласие на обработку персональных данных</h1>
+
+            <div class="instruction-block">
                 <p class="legal-meta">Редакция от {{ policy_date }}.</p>
 
                 <p>Настоящим я, субъект персональных данных, свободно, своей волей и в своём интересе даю согласие оператору — {{ operator_name }} (адрес: {{ operator_address }}, контакт: <a href="mailto:{{ operator_email }}">{{ operator_email }}</a>) — на обработку моих персональных данных на условиях, изложенных ниже, в соответствии со ст. 9 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных».</p>
@@ -99,10 +104,12 @@
                     <p>Если персональные данные несовершеннолетнего предоставляются законным представителем, он подтверждает наличие у него полномочий на такое предоставление и на дачу согласия от имени и в интересах несовершеннолетнего.</p>
                 </div>
             </div>
-        </div>
-    </main>
-
+        </main>
+    </div>
     <div id="footer-placeholder"></div>
+    <script src="js/account-widget.js"></script>
+    <script src="js/help.js"></script>
     <script src="js/footer.js"></script>
+    <script src="js/consent.js"></script>
 </body>
 </html>
