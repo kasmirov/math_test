@@ -2,8 +2,8 @@
 # Entrypoint боевого контейнера: рендер конфига nginx и запуск gunicorn + nginx.
 set -e
 
-CERT_FILE="${TLS_CERT_FILE:-/etc/nginx/certs/fullchain.pem}"
-KEY_FILE="${TLS_KEY_FILE:-/etc/nginx/certs/privkey.pem}"
+CERT_FILE="${TLS_CERT_FILE:-/etc/nginx/certs/certificate.crt}"
+KEY_FILE="${TLS_KEY_FILE:-/etc/nginx/certs/certificate.key}"
 HTTP_PORT="${HTTP_PORT:-80}"
 HTTPS_PORT="${HTTPS_PORT:-443}"
 SERVER_NAME="${SERVER_NAME:-_}"

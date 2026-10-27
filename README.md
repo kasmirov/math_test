@@ -93,17 +93,18 @@ docker build -f Dockerfile.prod -t math-test-prod .
 Run with your TLS certificates:
 ```bash
 docker run -d -p 80:80 -p 443:443 \
-  -e SERVER_NAME=example.com \
-  -e TLS_CERT_FILE=/etc/nginx/certs/fullchain.pem \
-  -e TLS_KEY_FILE=/etc/nginx/certs/privkey.pem \
+  -e SERVER_NAME=server.com \
+  -e TLS_CERT_FILE=/etc/nginx/certs/certificate.crt \
+  -e TLS_KEY_FILE=/etc/nginx/certs/certificate.key \
   -v /path/to/persistent/data:/app/data \
-  -v /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro \
+  -v /path/to/certs/server.com:/etc/nginx/certs:ro \
+  -v /path/to/private:/etc/nginx/certs:ro \
   --name math-test-prod \
   math-test-prod
 ```
 
-Certificates can also be placed directly at `/etc/nginx/certs/fullchain.pem` and
-`/etc/nginx/certs/privkey.pem` — in that case `TLS_CERT_FILE`/`TLS_KEY_FILE` may be omitted.
+Certificates can also be placed directly at `/etc/nginx/certs/certificate.crt` and
+`/etc/nginx/certs/certificate.key` — in that case `TLS_CERT_FILE`/`TLS_KEY_FILE` may be omitted.
 
 **Environment variables (production):**
 
@@ -112,8 +113,8 @@ Certificates can also be placed directly at `/etc/nginx/certs/fullchain.pem` and
 | `SERVER_NAME` | `_` | domain for nginx (`server_name`) |
 | `HTTP_PORT` | `80` | HTTP port (redirects to HTTPS) |
 | `HTTPS_PORT` | `443` | HTTPS port |
-| `TLS_CERT_FILE` | `/etc/nginx/certs/fullchain.pem` | path to the certificate |
-| `TLS_KEY_FILE` | `/etc/nginx/certs/privkey.pem` | path to the private key |
+| `TLS_CERT_FILE` | `/etc/nginx/certs/certificate.crt` | path to the certificate |
+| `TLS_KEY_FILE` | `/etc/nginx/certs/certificate.key` | path to the private key |
 | `GUNICORN_BIND` | `127.0.0.1:8000` | gunicorn bind address (internal) |
 | `GUNICORN_WORKERS` | `3` | number of gunicorn workers |
 | `APP_PAGES_MODE` | `full` | page set (`full`/`minimal`) |

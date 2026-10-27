@@ -92,17 +92,18 @@ docker build -f Dockerfile.prod -t math-test-prod .
 Запуск со своими сертификатами:
 ```bash
 docker run -d -p 80:80 -p 443:443 \
-  -e SERVER_NAME=example.com \
-  -e TLS_CERT_FILE=/etc/nginx/certs/fullchain.pem \
-  -e TLS_KEY_FILE=/etc/nginx/certs/privkey.pem \
+  -e SERVER_NAME=server.com \
+  -e TLS_CERT_FILE=/etc/nginx/certs/certificate.crt \
+  -e TLS_KEY_FILE=/etc/nginx/certs/certificate.key \
   -v /path/to/persistent/data:/app/data \
-  -v /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro \
+  -v /path/to/certs/server.com:/etc/nginx/certs:ro \
+  -v /path/to/private:/etc/nginx/certs:ro \
   --name math-test-prod \
   math-test-prod
 ```
 
-Сертификаты также можно положить напрямую в `/etc/nginx/certs/fullchain.pem` и
-`/etc/nginx/certs/privkey.pem` — тогда `TLS_CERT_FILE`/`TLS_KEY_FILE` можно не задавать.
+Сертификаты также можно положить напрямую в `/etc/nginx/certs/certificate.crt` и
+`/etc/nginx/certs/certificate.key` — тогда `TLS_CERT_FILE`/`TLS_KEY_FILE` можно не задавать.
 
 **Переменные окружения (production):**
 
@@ -111,8 +112,8 @@ docker run -d -p 80:80 -p 443:443 \
 | `SERVER_NAME` | `_` | домен для nginx (`server_name`) |
 | `HTTP_PORT` | `80` | порт HTTP (редирект на HTTPS) |
 | `HTTPS_PORT` | `443` | порт HTTPS |
-| `TLS_CERT_FILE` | `/etc/nginx/certs/fullchain.pem` | путь к сертификату |
-| `TLS_KEY_FILE` | `/etc/nginx/certs/privkey.pem` | путь к приватному ключу |
+| `TLS_CERT_FILE` | `/etc/nginx/certs/certificate.crt` | путь к сертификату |
+| `TLS_KEY_FILE` | `/etc/nginx/certs/certificate.key` | путь к приватному ключу |
 | `GUNICORN_BIND` | `127.0.0.1:8000` | адрес gunicorn (внутренний) |
 | `GUNICORN_WORKERS` | `3` | число воркеров gunicorn |
 | `APP_PAGES_MODE` | `full` | набор страниц (`full`/`minimal`) |
