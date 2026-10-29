@@ -1,3 +1,7 @@
+# Ограничение частоты запросов 10 запросов/мин на IP, всплеск до burst.
+limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=10r/m;
+limit_req_status 429;
+
 server {
     listen ${HTTP_PORT};
     listen [::]:${HTTP_PORT};
@@ -34,13 +38,26 @@ server {
 
     client_max_body_size 4m;
 
+    # Прокси-заголовки наследуются всеми location
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 120s;
+
+    # Защита логина и регистрации от перебора/спама (вместо in-memory лимитера в приложении)
+    location = /api/auth/login {
+        limit_req zone=auth_limit burst=10 nodelay;
+        proxy_pass http://${GUNICORN_BIND};
+    }
+
+    location = /api/auth/register {
+        limit_req zone=auth_limit burst=10 nodelay;
+        proxy_pass http://${GUNICORN_BIND};
+    }
+
     location / {
         proxy_pass http://${GUNICORN_BIND};
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
     }
 }

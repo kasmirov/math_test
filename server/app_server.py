@@ -2,8 +2,6 @@ import re
 import os
 import secrets
 import json
-import time
-from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -135,28 +133,6 @@ def validate_email(email):
     return bool(email) and bool(EMAIL_RE.match(email)) and len(email) <= 254
 
 
-# Простой in-memory rate limiter (на процесс)
-_rate_limit_store = defaultdict(deque)
-
-
-def rate_limit(max_requests, window_seconds):
-    """Ограничивает число запросов к эндпоинту с одного IP в окне времени."""
-    def decorator(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            key = f"{fn.__name__}:{request.remote_addr or 'unknown'}"
-            now = time.monotonic()
-            bucket = _rate_limit_store[key]
-            while bucket and now - bucket[0] > window_seconds:
-                bucket.popleft()
-            if len(bucket) >= max_requests:
-                return jsonify({'error': 'Too many requests'}), 429
-            bucket.append(now)
-            return fn(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 def internal_error(exc):
     """Логирует исключение и возвращает клиенту обезличенный ответ 500."""
     app.logger.exception(f"Internal server error: {exc}")
@@ -199,7 +175,6 @@ def get_user_and_profile(fn):
 
 # Эндпоинты аутентификации
 @app.route('/api/auth/register', methods=['POST'])
-@rate_limit(10, 60)
 def register():
     try:
         data = request.get_json()
@@ -277,7 +252,6 @@ def register():
 
 
 @app.route('/api/auth/login', methods=['POST'])
-@rate_limit(10, 60)
 def login():
     try:
         data = request.get_json()
