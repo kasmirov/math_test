@@ -18,9 +18,12 @@ server {
 }
 
 server {
-    listen ${HTTPS_PORT} ssl http2;
-    listen [::]:${HTTPS_PORT} ssl http2;
+    listen ${HTTPS_PORT} ssl;
+    listen [::]:${HTTPS_PORT} ssl;
     server_name ${SERVER_NAME};
+
+    # HTTP/2 (nginx >=1.25.1)
+    http2 on;
 
     ssl_certificate     ${TLS_CERT_FILE};
     ssl_certificate_key ${TLS_KEY_FILE};

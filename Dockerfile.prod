@@ -5,10 +5,7 @@
 # TLS_CERT_FILE / TLS_KEY_FILE). Full page set (landing + footer).
 
 # --- Build stage ---
-# Base pinned to Debian bookworm: its nginx (1.22) still supports the
-# `listen ... http2` directive used in deploy/nginx/default.conf.template.
-# Newer distros (nginx >= 1.26) removed it in favour of `http2 on;`.
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -20,18 +17,29 @@ COPY requirements.txt requirements-prod.txt ./
 RUN pip install --no-cache-dir --prefix=/install -r requirements-prod.txt
 
 # --- Runtime stage ---
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# nginx + envsubst (gettext) + utilities
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx \
-    gettext-base \
-    fonts-liberation \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -f /etc/nginx/sites-enabled/default
+# nginx из официального репозитория nginx.org (свежая версия с директивой
+# `http2 on;`), плюс envsubst (gettext-base) и утилиты.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gnupg \
+        gettext-base \
+        fonts-liberation; \
+    install -d /usr/share/keyrings; \
+    curl -fsSL https://nginx.org/keys/nginx_signing.key \
+        | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian $(. /etc/os-release && echo "$VERSION_CODENAME") nginx" \
+        > /etc/apt/sources.list.d/nginx.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends nginx; \
+    rm -rf /var/lib/apt/lists/*; \
+    rm -f /etc/nginx/sites-enabled/default
 
 COPY --from=builder /install /usr/local
 
