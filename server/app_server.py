@@ -140,27 +140,20 @@ def internal_error(exc):
 
 
 def optional_jwt_required(fn):
+    """Проверить JWT, если он передан.
+
+    Отсутствие токена => анонимный вызов (verify_jwt_in_request(optional=True)
+    не бросает исключение без токена). Невалидный/просроченный токен или ошибка
+    CSRF => исключение (клиент получит 401 и обновит токен), а не тихий
+    «даунгрейд» авторизованного запроса в анонимный.
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        try:
-            # Пытаемся верифицировать токен (без исключений при optional=True)
-            verify_jwt_in_request(optional=True)
-
-            # Получаем email пользователя (будет None если токен невалиден/отсутствует)
-            user_email = get_jwt_identity()
-
-            # Проверяем, валиден ли токен через наличие user_email
-            is_authenticated = user_email is not None
-
-            return fn(*args, **kwargs,
-                      is_authenticated=is_authenticated,
-                      user_email=user_email)
-
-        except Exception as e:
-            # Анонимный пользователь (без валидного токена)
-            return fn(*args, **kwargs,
-                      is_authenticated=False,
-                      user_email=None)
+        verify_jwt_in_request(optional=True)
+        user_email = get_jwt_identity()
+        return fn(*args, **kwargs,
+                  is_authenticated=user_email is not None,
+                  user_email=user_email)
 
     return wrapper
 

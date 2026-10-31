@@ -43,27 +43,22 @@ class Units(ABC):
         t = type(self)
         return t((self.base_value - other.base_value) / self.table[self.unit], self.unit)
 
-    # if isinstance(section_name, ProblemGenerator):
+    # Сравнение величин допустимо только внутри одного семейства (масса/длина/объём),
+    # которое определяется базовой единицей base_type.
     def __eq__(self, other):
-        if type(self) is type(other):
-            return self.base_value == other.base_value
-        if type(other) == Units and self.base_type == other.base_type:
-                return self.base_value == other.base_value
-        return False
+        if not isinstance(other, Units):
+            return NotImplemented
+        return self.base_type == other.base_type and self.base_value == other.base_value
 
     def __lt__(self, other):
-        if type(self) is type(other):
-            return self.base_value < other.base_value
-        if type(other) == Units and self.base_type == other.base_type:
-                return self.base_value < other.base_value
-        return False
+        if not isinstance(other, Units) or self.base_type != other.base_type:
+            return False
+        return self.base_value < other.base_value
 
     def __gt__(self, other):
-        if type(self) is type(other):
-            return self.base_value > other.base_value
-        if type(other) == Units and self.base_type == other.base_type:
-                return self.base_value > other.base_value
-        return False
+        if not isinstance(other, Units) or self.base_type != other.base_type:
+            return False
+        return self.base_value > other.base_value
 
     # TODO Пофиксить ветку когда не выставлено ни одного значения value
     def __str__(self):
@@ -185,7 +180,7 @@ class Volume(Units):
 
 
 # Единый шаблон для разбора ответа вида "<число> <единица>" (например, "5 кг")
-UNITS_INPUT_PATTERN = re.compile(r"(\d*.?\d+)\s*([a-zA-Zа-яА-Я]+)")
+UNITS_INPUT_PATTERN = re.compile(r"(\d*\.?\d+)\s*([a-zA-Zа-яА-Я]+)")
 
 
 def parse_units_input(user_input: str):
@@ -196,13 +191,13 @@ def parse_units_input(user_input: str):
     вызывающий код мог сравнить её с правильным ответом как обычную строку.
     """
     normalized = user_input.lower().replace(',', '.')
-    match = UNITS_INPUT_PATTERN.match(normalized)
-    if not match:
-        return normalized
-
-    value = float(match.group(1).replace(' ', ''))
-    unit = match.group(2)
     try:
+        match = UNITS_INPUT_PATTERN.match(normalized)
+        if not match:
+            return normalized
+
+        value = float(match.group(1).replace(' ', ''))
+        unit = match.group(2)
         return Units(value, unit)
-    except ValueError:
+    except (ValueError, TypeError):
         return normalized

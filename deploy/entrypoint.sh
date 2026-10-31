@@ -32,8 +32,11 @@ envsubst '$SERVER_NAME $HTTP_PORT $HTTPS_PORT $TLS_CERT_FILE $TLS_KEY_FILE $GUNI
 nginx -t
 
 echo "Запуск gunicorn на ${GUNICORN_BIND} (${GUNICORN_WORKERS} воркеров)"
+# --preload: приложение импортируется один раз в мастере до форка воркеров.
+# Это убирает гонку при создании JWT-секретов и повторную инициализацию БД.
 gunicorn \
     --workers "$GUNICORN_WORKERS" \
+    --preload \
     --bind "$GUNICORN_BIND" \
     --access-logfile - \
     --error-logfile - \

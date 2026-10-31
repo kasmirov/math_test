@@ -545,7 +545,7 @@ class AccountPage {
                 }
             });
 
-            select.addEventListener('blur', (e) => {
+            input.addEventListener('blur', (e) => {
                 if (this.editingProfileId === profileId) {
                     this.saveEditing(profileId, field, e.target.value);
                 }
