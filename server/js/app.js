@@ -410,7 +410,7 @@ function showMainScreen() {
 }
 
 // Выбор блоков при новом тесте
-function showBlocksScreen() {
+async function showBlocksScreen() {
 	mainScreen.style.display = 'none';
 	blocksScreen.style.display = 'block';
     blocksList.style.display = 'grid';
@@ -424,9 +424,18 @@ function showBlocksScreen() {
 	// восстанавливаем selectedBlocks из визуального состояния при первом отображении экрана
 	//syncSelectedBlocksFromUI();
 
-	// Обновляем фильтры
-	renderFilters();
-	filterAndRenderBlocks();
+	// Если блоки ещё не загружены (первый запрос не успел завершиться или упал) —
+	// загружаем их здесь, чтобы экран не оставался пустым до входа в аккаунт.
+	if (!blocksLoaded) {
+		await loadBlocks();
+	}
+
+	// Обновляем фильтры и список блоков. Если загрузка не удалась, loadBlocks уже
+	// показал сообщение об ошибке — не перетираем его пустым «Нет блоков…».
+	if (blocksLoaded) {
+		renderFilters();
+		filterAndRenderBlocks();
+	}
 
     // Показываем уведомление о сессии, если она есть
     checkActiveSession();
@@ -604,6 +613,13 @@ async function loadBlocks(forceReload = false) {
 		allBlocks = data.blocks;
 		availableTags = data.available_tags;
 		blocksLoaded = true;
+
+		// Блоки могли загрузиться уже после открытия экрана выбора блоков —
+		// тогда перерисовываем его, иначе список останется пустым.
+		if (blocksScreen.style.display === 'block') {
+			renderFilters();
+			filterAndRenderBlocks();
+		}
 
 	} catch (error) {
 		console.error('Ошибка при загрузке блоков:', error);
