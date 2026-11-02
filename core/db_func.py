@@ -101,10 +101,20 @@ def get_profile_limits(profile_id):
         # возвращаем лимиты по умолчанию вместо падения с 500.
         return default_limits()
 
+    # settings может быть пустым, невалидным JSON или "null" (например, профиль
+    # создан без настроенных лимитов) — в любом случае работаем с defaults.
+    settings = None
     try:
-        settings = json.loads(profile["settings"])
-        profile_limits = settings.get("limits", dict())
+        if profile["settings"]:
+            settings = json.loads(profile["settings"])
     except (json.decoder.JSONDecodeError, TypeError):
+        settings = None
+
+    if not isinstance(settings, dict):
+        settings = {}
+
+    profile_limits = settings.get("limits", {})
+    if not isinstance(profile_limits, dict):
         profile_limits = {}
 
     def_limits = default_limits()

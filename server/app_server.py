@@ -517,7 +517,7 @@ def create_profile():
                 user_row['id'],
                 data['name'],
                 data['type'],
-                json.dumps(data.get('settings', {}))
+                json.dumps(data.get('settings') or {})
             ))
             conn.commit()
 

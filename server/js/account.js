@@ -766,7 +766,7 @@ class AccountPage {
         const collapseAllBtn = document.getElementById('collapseAllButton');
 			
         let treeEditor = null;
-		let settings = null;
+		let settings = { limits: {} };
 
         const showModal = () => {
             setTimeout(() => {
