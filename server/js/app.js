@@ -1681,7 +1681,7 @@ const accWidget = AccountWidget.getInstance({
         updateAppInfo();
 
         // Применяем настройки профиля
-        applyProfileSettings(currentProfile.settings);
+        applyProfileSettings(currentProfile && currentProfile.settings);
 
         // Для перерисовки имени профиля
         if (currentProfile) {
@@ -1729,7 +1729,7 @@ const accWidget = AccountWidget.getInstance({
         checkActiveSession();
 
         // Применяем настройки профиля
-        applyProfileSettings(profile.settings);
+        applyProfileSettings(profile && profile.settings);
 
         // Загружаем блоки для выбранного профиля
         loadBlocks(true).then(() => loadBlocksState());
@@ -1751,7 +1751,7 @@ const accWidget = AccountWidget.getInstance({
         updateAppInfo();
 
         // Применяем настройки профиля
-        applyProfileSettings(currentProfile.settings);
+        applyProfileSettings(currentProfile && currentProfile.settings);
 
         // Для перерисовки имени профиля
         if (currentProfile) {
@@ -1765,6 +1765,9 @@ const accWidget = AccountWidget.getInstance({
 });
 
 function applyProfileSettings(settings) {
+    if (!settings) {
+        return;
+    }
     // Пример применения настроек профиля
     if (settings.theme) {
         document.body.style.backgroundColor = settings.theme === 'dark' ? '#1a202c' : 'white';

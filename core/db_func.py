@@ -86,19 +86,25 @@ def get_user_profiles(user_id):
 
 # desktop use only
 def get_profile_data(profile_id):
-    """Получение данных профиля"""
+    """Получение данных профиля (None, если профиль не найден)."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM profiles WHERE id = ?', (profile_id,))
         profile = cursor.fetchone()
-        return dict(profile)
+        return dict(profile) if profile else None
 
 
 def get_profile_limits(profile_id):
+    profile = get_profile_data(profile_id) if profile_id is not None else None
+    if not profile:
+        # Профиля нет (например, у пользователя ещё не создан ни один профиль) —
+        # возвращаем лимиты по умолчанию вместо падения с 500.
+        return default_limits()
+
     try:
-        settings = json.loads(get_profile_data(profile_id)["settings"])
+        settings = json.loads(profile["settings"])
         profile_limits = settings.get("limits", dict())
-    except json.decoder.JSONDecodeError as e:
+    except (json.decoder.JSONDecodeError, TypeError):
         profile_limits = {}
 
     def_limits = default_limits()

@@ -18,7 +18,7 @@ from core.db_func import create_session, get_anonymous_profile, get_user_id_by_e
     update_current_question_start_time, get_question, increase_current_question_idx, get_questions_number, \
     get_current_question_idx, update_history, update_mistakes, get_anonymous_user, get_current_question_start_time, \
     get_statistics, get_user_profiles, get_profile_limits, get_unsolved_problems, init_db, get_db_connection, \
-    get_session_history, delete_current_session
+    get_session_history, delete_current_session, create_profile as create_user_profile
 from core.units import Units, parse_units_input
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -844,7 +844,13 @@ def get_creds_from_email(current_user_email):
 
         profiles = get_user_profiles(user_id)
         if not profiles or len(profiles) == 0:
-            return user_id, None
+            # У пользователя ещё нет ни одного профиля (например, сразу после
+            # регистрации). Создаём профиль по умолчанию, иначе эндпоинты
+            # падают, получая profile_id = None.
+            create_user_profile(user_id, 'Личный')
+            profiles = get_user_profiles(user_id)
+            if not profiles or len(profiles) == 0:
+                return user_id, None
 
         # Пробуем получить profile_id из запроса
         data = request.get_json(silent=True) or {}

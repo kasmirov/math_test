@@ -1109,38 +1109,45 @@ class AccountWidget {
             return;
         }
 
+        let result;
         try {
-            const result = await this.makeRequest('/auth/login', {
+            result = await this.makeRequest('/auth/login', {
                 method: 'POST',
                 credentials: 'include',
                 body: JSON.stringify({ email, password })
             });
-
-            if (result && result.user) {
-                this.currentUser = result.user;
-
-                try {
-                    const accountData = await this.makeRequest('/account');
-                    if (accountData && accountData.profiles) {
-                        this.profiles = accountData.profiles;
-                        this.currentProfile = this.profiles[0] || null;
-                    }
-                } catch (e) {
-                    await this.loadProfiles();
-                }
-
-                this.saveToStorage();
-                await this.onAuthSuccess();
-                this.options.onLogin(this.currentUser);
-                this.container.querySelector('#loginForm')?.reset();
-                this.hideDropdown();
-            }
         } catch (error) {
             this.currentUser = null;
             this.profiles = [];
             this.currentProfile = null;
             this.showAlert('error', error.message, 'login-tab');
+            return;
         }
+
+        if (!result || !result.user) {
+            return;
+        }
+
+        this.currentUser = result.user;
+
+        try {
+            const accountData = await this.makeRequest('/account');
+            if (accountData && accountData.profiles) {
+                this.profiles = accountData.profiles;
+                this.currentProfile = this.profiles[0] || null;
+            }
+        } catch (e) {
+            await this.loadProfiles();
+        }
+
+        // Авторизация успешна: закрываем форму и показываем меню пользователя.
+        this.saveToStorage();
+        this.container.querySelector('#loginForm')?.reset();
+        this.hideDropdown();
+        await this.onAuthSuccess();
+
+        // Коллбек не должен влиять на состояние авторизации и закрытие формы.
+        this._notify(this.options.onLogin, this.currentUser);
     }
 
     async register() {
@@ -1177,8 +1184,9 @@ class AccountWidget {
             cookiesAgreement = false;
         }
 
+        let result;
         try {
-            const result = await this.makeRequest('/auth/register', {
+            result = await this.makeRequest('/auth/register', {
                 method: 'POST',
                 body: JSON.stringify({
                     email,
@@ -1188,29 +1196,35 @@ class AccountWidget {
                     cookies_agreement: cookiesAgreement
                 })
             });
-
-            if (result && result.user) {
-                this.currentUser = result.user;
-
-                try {
-                    const accountData = await this.makeRequest('/account');
-                    if (accountData && accountData.profiles) {
-                        this.profiles = accountData.profiles;
-                        this.currentProfile = this.profiles[0] || null;
-                    }
-                } catch (e) {
-                    await this.loadProfiles();
-                }
-
-                this.saveToStorage();
-                await this.onAuthSuccess();
-                this.options.onLogin(this.currentUser);
-                this.container.querySelector('#registerForm')?.reset();
-                this.hideDropdown();
-            }
         } catch (error) {
             this.showAlert('error', error.message, 'register-tab');
+            return;
         }
+
+        if (!result || !result.user) {
+            return;
+        }
+
+        this.currentUser = result.user;
+
+        try {
+            const accountData = await this.makeRequest('/account');
+            if (accountData && accountData.profiles) {
+                this.profiles = accountData.profiles;
+                this.currentProfile = this.profiles[0] || null;
+            }
+        } catch (e) {
+            await this.loadProfiles();
+        }
+
+        // Регистрация успешна: закрываем форму и показываем меню пользователя.
+        this.saveToStorage();
+        this.container.querySelector('#registerForm')?.reset();
+        this.hideDropdown();
+        await this.onAuthSuccess();
+
+        // Коллбек не должен влиять на состояние авторизации и закрытие формы.
+        this._notify(this.options.onLogin, this.currentUser);
     }
 
     async logout() {
@@ -1262,6 +1276,22 @@ class AccountWidget {
         const dropdown = this.container?.querySelector('#accountDropdown');
         if (dropdown) {
             dropdown.innerHTML = this.getAccountMenuHTML();
+        }
+    }
+
+    // Безопасный вызов пользовательского коллбека: ошибка в нём не должна
+    // ломать состояние авторизации виджета.
+    _notify(callback, ...args) {
+        if (typeof callback !== 'function') {
+            return;
+        }
+        try {
+            const result = callback(...args);
+            if (result && typeof result.catch === 'function') {
+                result.catch((e) => console.error('Account widget callback error:', e));
+            }
+        } catch (e) {
+            console.error('Account widget callback error:', e);
         }
     }
 
