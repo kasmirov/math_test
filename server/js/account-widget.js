@@ -829,12 +829,16 @@ class AccountWidget {
         if (!this._documentListenersAttached) {
             this._documentListenersAttached = true;
 
-            // Закрытие dropdown при клике вне его
+            // Закрытие dropdown при клике вне его.
+            // Важно: capture-фаза. Обработчики внутри виджета могут заменять
+            // innerHTML дропдауна (напр. «Сменить аккаунт»), из-за чего кликнутый
+            // элемент отсоединяется от DOM и contains() на bubble-фазе вернул бы
+            // false, закрывая только что показанную форму.
             document.addEventListener('click', (e) => {
                 if (this.container && !this.container.contains(e.target)) {
                     this.hideDropdown();
                 }
-            });
+            }, true);
 
             // Закрытие dropdown при нажатии Escape
             document.addEventListener('keydown', (e) => {
